@@ -1,5 +1,13 @@
 @extends('layouts.app')
 @section('content')
+    @push('styles')
+        <style>
+            .material-shadow {
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    @endpush
+    
     <div class="page-content">
         <div class="container-fluid">
             <div class="row">
@@ -22,7 +30,6 @@
             <div class="col-lg-12">
                 <div class="card">
                     <div class="card-header align-items-center d-flex">  
-
                         <!-- Date Filter Inputs -->
                         <div class="flex-grow-1 me-3">
                             <div class="row g-2 align-items-end">
@@ -102,56 +109,76 @@
                                 </thead>
                                 <tbody>
                                     @forelse($licenses as $index => $license)
-                                        <tr data-license-type-id="{{ $license->license_type_id }}"
-                                            data-license-name-id="{{ $license->license_name_id }}">
+                                        <tr data-license-id="{{ $license->id }}"
+                                            data-license-type-id="{{ $license->license_type_id }}"
+                                            data-license-name-id="{{ $license->license_name_id }}" 
+                                            data-responsible-person-id="{{ $license->responsible_person }}">
                                             <td>{{ $index + 1 }}</td>
                                             <td>{{ $license->company->company_name ?? 'N/A' }}</td>
                                             <td>{{ $license->groupcom->name ?? ($license->company->company_name ?? 'N/A') }}</td>
                                             <td>{{ $license->licenseType->license_type ?? 'N/A' }}</td>
                                             <td>{{ $license->licenseName->license_name ?? 'N/A' }}</td>
                                             <td>{{ $license->valid_upto }}</td>
-                                            <td>{{ $license->lis_status }}</td>
+                                            <td>
+                                                @if ($license->lis_status === 'Active')
+                                                    <span class="badge bg-success">Active</span>
+                                                @elseif ($license->lis_status === 'Surrendered')
+                                                    <span class="badge bg-warning" 
+                                                        data-bs-toggle="tooltip" 
+                                                        data-bs-title="{{ $license->surrendered_remark ?? 'No remark provided' }}">
+                                                        Surrendered
+                                                    </span>
+                                                @elseif ($license->lis_status === 'Revoked')
+                                                    <span class="badge bg-danger" 
+                                                        data-bs-toggle="tooltip" 
+                                                        data-bs-title="{{ $license->revoked_remark ?? 'No remark provided' }}">
+                                                        Revoked
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ $license->lis_status }}</span>
+                                                @endif
+                                            </td>
                                             <td>
                                                 <div class="dropdown">
                                                     <button class="btn btn-sm btn-icon btn-light" type="button"
-                                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                                            data-bs-toggle="dropdown" aria-expanded="false">
                                                         <i class="ri-more-fill fs-18"></i>
                                                     </button>
                                                     <ul class="dropdown-menu dropdown-menu-end shadow">
                                                         <li>
-                                                            <a class="dropdown-item d-flex align-items-center viewLicenseBtn"
-                                                                data-id="{{ $license->id }}" data-bs-toggle="modal"
-                                                                data-bs-target="#viewLicenseModal">
+                                                            <a class="dropdown-item d-flex align-items-center viewLicenseBtn" href="#"
+                                                            data-id="{{ $license->id }}" data-bs-toggle="modal"
+                                                            data-bs-target="#viewLicenseModal">
                                                                 <i class="ri-eye-line text-primary me-2"></i> View
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a class="dropdown-item d-flex align-items-center editLicenseBtn"
-                                                                data-id="{{ $license->id }}" data-bs-toggle="modal"
-                                                                data-bs-target="#editLicenseModal">
+                                                            <a class="dropdown-item d-flex align-items-center editLicenseBtn" href="#"
+                                                            data-id="{{ $license->id }}" data-bs-toggle="modal"
+                                                            data-bs-target="#editLicenseModal">
                                                                 <i class="ri-pencil-line text-warning me-2"></i> Edit
                                                             </a>
                                                         </li>
-                                                        @if (Carbon\Carbon::parse($license->valid_upto)->lte(now()))
+                                                        @if (Carbon\Carbon::parse($license->valid_upto)->lte(now()) && $license->lis_status === 'Active')
                                                             <li>
-                                                                <a class="dropdown-item d-flex align-items-center renewLicenseBtn"
-                                                                    data-id="{{ $license->id }}" data-bs-toggle="modal"
-                                                                    data-bs-target="#renewLicenseModal">
+                                                                <a class="dropdown-item d-flex align-items-center renewLicenseBtn" href="#"
+                                                                data-id="{{ $license->id }}" data-bs-toggle="modal"
+                                                                data-bs-target="#renewLicenseModal">
                                                                     <i class="ri-refresh-line text-success me-2"></i> Renew
                                                                 </a>
                                                             </li>
                                                         @endif
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center history-btn"
-                                                                href="#" data-license-type-id="{{ $license->license_type_id }}"
-                                                                data-license-name-id="{{ $license->license_name_id }}"
-                                                                data-bs-toggle="modal" data-bs-target="#historyLicenseModal">
+                                                            href="#" data-license-type-id="{{ $license->license_type_id }}"
+                                                            data-license-name-id="{{ $license->license_name_id }}"
+                                                            data-bs-toggle="modal" data-bs-target="#historyLicenseModal">
                                                                 <i class="ri-file-list-3-line text-info me-2"></i> History
                                                             </a>
                                                         </li>
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center"
-                                                                href="{{ route('license.activity-log') }}">
+                                                            href="{{ route('license.activity-log') }}">
                                                                 <i class="ri-history-line text-muted me-2"></i> Activity Log
                                                             </a>
                                                         </li>
@@ -223,31 +250,34 @@
 
                                     <div class="col-md-3">
                                         <label for="state_id" class="form-label">State</label>
-                                        <select class="form-select form-select-sm" id="state_id" name="state_id" required>
+                                        <select class="form-select form-select-sm" id="state_id" name="state_id"  disabled>
                                             <option value="">Select State</option>
                                             @foreach ($states as $state)
                                                 <option value="{{ $state->id }}">{{ $state->state_name }}</option>
                                             @endforeach
                                         </select>
+                                        <input type="hidden" name="state_id" id="state_id_hidden">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label for="district_id" class="form-label">District</label>
-                                        <select class="form-select form-select-sm" id="district_id" name="district_id" required>
+                                        <select class="form-select form-select-sm" id="district_id" name="district_id_display"  disabled>
                                             <option value="">Select District</option>
                                         </select>
+                                        <input type="hidden" name="district_id" id="district_id_hidden">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label for="city_village_id" class="form-label">City/Village</label>
-                                        <select class="form-select form-select-sm" id="city_village_id" name="city_village_id" required>
+                                        <select class="form-select form-select-sm" id="city_village_id" name="city_village_id_display"  disabled> 
                                             <option value="">Select City/Village</option>
                                         </select>
+                                        <input type="hidden" name="city_village_id" id="city_village_id_hidden">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label for="pincode" class="form-label">Pincode</label>
-                                        <input type="text" class="form-control form-control-sm" id="pincode" name="pincode" required
+                                        <input type="text" class="form-control form-control-sm" id="pincode" name="pincode" 
                                             readonly>
                                     </div>
                                 </div>
@@ -304,18 +334,16 @@
 
                                     <div class="col-md-3" id="license_creation_remark_section" style="display: none;">
                                         <label for="license_creation_remark" class="form-label">Remark</label>
-                                        <textarea class="form-control form-control-sm" id="license_creation_remark" name="license_creation_remark" rows="3" placeholder="Enter remark for modification"></textarea>
+                                        <textarea class="form-control form-control-sm" id="license_creation_remark" name="license_creation_remark" rows="1" placeholder="Enter remark for modification"></textarea>
                                     </div>
 
                                     <div class="col-md-3">
                                         <label for="application_number" class="form-label">Application Number</label>
-                                        <input type="text" class="form-control form-control-sm" id="application_number" name="application_number"
-                                            required>
+                                        <input type="text" class="form-control form-control-sm" id="application_number" name="application_number">
                                     </div>
                                    
-
                                     <div class="col-md-3">
-                                        <label for="letter_date" class="form-label">Date of Application</label>
+                                        <label for="letter_date" class="form-label">Date of Application<span class="text-danger">*</span></label>
                                         <input type="date" class="form-control form-control-sm" id="letter_date" name="letter_date">
                                     </div>
 
@@ -339,7 +367,7 @@
 
                                     
                                     <div class="col-md-3">
-                                        <label for="application_status" class="form-label">Application Status</label>
+                                        <label for="application_status" class="form-label">Application Status<span class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" id="application_status_select" name="application_status" required>
                                             <option value="">Select</option>
                                             <option value="Submitted">Submitted</option>
@@ -350,9 +378,18 @@
                                         <input type="text" class="form-control form-control-sm" id="application_status_input" name="application_status" value="Approved" readonly style="display: none;">
                                     </div>
 
+                                    <div class="col-md-3" id="withdrawn_remark_section" style="display: none;">
+                                        <label for="withdrawn_remark" class="form-label">Withdrawn Remark</label>
+                                        <textarea class="form-control form-control-sm" id="withdrawn_remark" name="withdrawn_remark" rows="1" placeholder="Enter withdrawn remark"></textarea>
+                                    </div>
+
+                                    <div class="col-md-3" id="rejected_remark_section" style="display: none;">
+                                        <label for="rejected_remark" class="form-label">Rejected Remark</label>
+                                        <textarea class="form-control form-control-sm" id="rejected_remark" name="rejected_remark" rows="1" placeholder="Enter rejected remark"></textarea>
+                                    </div>
 
                                     <div class="col-md-3">
-                                        <label for="date_of_issue" class="form-label">Date of Registration</label>
+                                        <label for="date_of_issue" class="form-label">Date of Registration<span class="text-danger">*</span></label>
                                         <input type="date" class="form-control form-control-sm" id="date_of_issue" name="date_of_issue">
                                     </div>
 
@@ -367,7 +404,7 @@
                                     </div>  
 
                                     <div class="col-md-3">
-                                        <label for="valid_upto" class="form-label">Valid Upto</label>
+                                        <label for="valid_upto" class="form-label">Valid Upto<span class="text-danger">*</span></label>
                                         <input type="date" class="form-control form-control-sm" id="valid_upto" name="valid_upto"
                                             required>
                                     </div>
@@ -379,11 +416,13 @@
                                             <option value="Active">Active</option>
                                             <option value="Deactive">Expired</option>
                                         </select>
+                                        <input type="hidden" name="lis_status" id="lis_status_hidden">
                                     </div>
 
                                     <div class="col-md-3">
-                                        <label class="form-label">Add CC Email</label>
+                                        <label class="form-label">Add CC Email<span class="text-danger">*</span></label>
                                         <select class="form-select form-select-sm" id="reminder_option" name="reminder_option" required>
+                                            <option value="">select</option>
                                             <option value="N">No</option>
                                             <option value="Y">Yes</option>
                                         </select>
@@ -400,12 +439,31 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
                                 </div>
 
                                 <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Requirement Details</h6>
                                 <div id="mapped_fields" style="margin-top: 10px;">
                                     <!-- Mapped fields will be dynamically inserted here -->
                                 </div>
+
+                                <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Final Document</h6>
+                                <div class="col-md-6">
+                                    <label for="final_document" class="form-label">License Final Document</label>
+                                    <div id="final-document-list">
+                                        <div class="document-row input-group mb-2">
+                                            <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                                            <input type="file" name="final_document[]" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                            <span class="input-group-text bg-white border-0">
+                                                <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                                            </span>
+                                            <span class="input-group-text bg-white border-0" style="display: none;">
+                                                <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             <input type="hidden" name="license_performance" value="new">
                             <button type="submit" class="btn btn-success">Save</button>
                         </form>
@@ -419,7 +477,7 @@
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editLicenseModalLabel">Edit License</h5>
+                        <h5 class="modal-title" id="editLicenseModalLabel">Edit License: <span id="editLicenseName" style="color: #1960bd;"></span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -527,7 +585,7 @@
                                 </div>
                                 <div class="col-md-3" id="edit_license_creation_remark_section" style="display: none;">
                                     <label for="edit_license_creation_remark" class="form-label">Remark</label>
-                                    <textarea class="form-control form-control-sm" id="edit_license_creation_remark" name="license_creation_remark" rows="3" placeholder="Enter remark for modification"></textarea>
+                                    <textarea class="form-control form-control-sm" id="edit_license_creation_remark" name="license_creation_remark" rows="1" placeholder="Enter remark for modification"></textarea>
                                 </div>
                                 <div class="col-md-3">
                                     <label for="edit_application_number" class="form-label">Application Number</label>
@@ -554,15 +612,26 @@
                                 </div>
 
                                 <div class="col-md-3">
-                                    <label for="edit_application_status" class="form-label">Application Status</label>
-                                    <select class="form-select form-select-sm" id="edit_application_status_select" name="application_status" required>
+                                    <label for="edit_application_status" class="form-label">Application Status<span class="text-danger">*</span></label>
+                                   <select class="form-select form-select-sm" id="edit_application_status" name="application_status" required>
                                         <option value="">Select</option>
                                         <option value="Submitted">Submitted</option>
                                         <option value="Under review">Under review</option>
+                                        <option value="Approved">Approved</option>
                                         <option value="Withdrawn">Withdrawn</option>
                                         <option value="Rejected">Rejected</option>
                                     </select>
                                     <input type="text" class="form-control form-control-sm" id="edit_application_status_input" name="application_status" value="Approved" readonly style="display: none;">
+                                </div>
+
+                                <div class="col-md-3" id="edit_withdrawn_remark_section" style="display: none;">
+                                    <label for="edit_withdrawn_remark" class="form-label">Withdrawn Remark</label>
+                                    <textarea class="form-control form-control-sm" id="edit_withdrawn_remark" name="withdrawn_remark" rows="1" placeholder="Enter withdrawn remark"></textarea>
+                                </div>
+
+                                <div class="col-md-3" id="edit_rejected_remark_section" style="display: none;">
+                                    <label for="edit_rejected_remark" class="form-label">Rejected Remark</label>
+                                    <textarea class="form-control form-control-sm" id="edit_rejected_remark" name="rejected_remark" rows="1" placeholder="Enter rejected remark"></textarea>
                                 </div>
 
                                 <div class="col-md-3">
@@ -587,7 +656,17 @@
                                         <option value="">Select</option>
                                         <option value="Active">Active</option>
                                         <option value="Deactive">Expired</option>
+                                        <option value="Surrendered">surrendered</option>
+                                        <option value="Revoked">Revoked</option>
                                     </select>
+                                </div>
+                                <div class="col-md-3" id="edit_surrendered_remark_section" style="display: none;">
+                                    <label for="edit_surrendered_remark" class="form-label">Surrendered Remark</label>
+                                    <textarea class="form-control form-control-sm" id="edit_surrendered_remark" name="surrendered_remark" rows="1" placeholder="Enter remark for surrendered status"></textarea>
+                                </div>
+                                <div class="col-md-3" id="edit_revoked_remark_section" style="display: none;">
+                                    <label for="edit_revoked_remark" class="form-label">Revoked Remark</label>
+                                    <textarea class="form-control form-control-sm" id="edit_revoked_remark" name="revoked_remark" rows="1" placeholder="Enter remark for revoked status"></textarea>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Add CC Email</label>
@@ -600,7 +679,7 @@
                                     <label class="form-label">Reminder Emails</label>
                                     <div id="edit_reminder-email-list">
                                         <div class="input-group mb-2">
-                                            <input type="email" name="reminder_emails[]" class="form-control form-control-sm" placeholder="Enter email">
+                                            <input type="email" name="reminder_emails[]" class="form-control form-control-sm"   placeholder="Enter email">
                                             <button type="button" class="btn btn-outline-secondary add-email">Add</button>
                                         </div>
                                     </div>
@@ -610,6 +689,23 @@
                             <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Requirement Details</h6>
                             <div id="edit_mapped_fields" style="margin-top: 10px;">
                                 <!-- Mapped fields will be dynamically inserted here -->
+                            </div>
+
+                            <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Final Document</h6>
+                            <div class="col-md-6">
+                                <label for="final_document" class="form-label">License Final Document</label>
+                                <div id="edit_final-document-list">
+                                    <div class="document-row input-group mb-2">
+                                        <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                                        <input type="file" name="final_document[]" class="form-control form-control-sm">
+                                        <span class="input-group-text bg-white border-0">
+                                            <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                                        </span>
+                                        <span class="input-group-text bg-white border-0" style="display: none;">
+                                            <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-success">Update</button>
@@ -624,7 +720,7 @@
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="viewLicenseModalLabel">View License Details</h5>
+                        <h5 class="modal-title" id="viewLicenseModalLabel">View License Details: <span id="viewLicenseName"></span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -714,6 +810,14 @@
                                 <label class="form-label fw-bold">Application Status</label>
                                 <p id="view_application_status" class="form-control-static"></p>
                             </div>
+                            <div class="col-md-6 mb-3" id="view_withdrawn_remark_section" style="display: none;">
+                                <label class="form-label">Withdrawn Remark</label>
+                                <p id="view_withdrawn_remark" class="form-control-static">N/A</p>
+                            </div>
+                            <div class="col-md-6 mb-3" id="view_rejected_remark_section" style="display: none;">
+                                <label class="form-label">Rejected Remark</label>
+                                <p id="view_rejected_remark" class="form-control-static">N/A</p>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold">Date of Registration</label>
                                 <p id="view_date_of_issue" class="form-control-static"></p>
@@ -734,6 +838,14 @@
                                 <label class="form-label fw-bold">License Status</label>
                                 <p id="view_lis_status" class="form-control-static"></p>
                             </div>
+                            <div class="col-md-6 mb-3" id="view_surrendered_remark_section" style="display: none;">
+                                <label class="form-label">Surrendered Remark</label>
+                                <p id="view_surrendered_remark" class="form-control-static">N/A</p>
+                            </div>
+                            <div class="col-md-6 mb-3" id="view_revoked_remark_section" style="display: none;">
+                                <label class="form-label">Revoked Remark</label>
+                                <p id="view_revoked_remark" class="form-control-static">N/A</p>
+                            </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-bold">Add CC Email</label>
                                 <p id="view_reminder_option" class="form-control-static"></p>
@@ -748,6 +860,23 @@
                         <div id="view_mapped_fields" style="margin-top: 10px;">
                             <!-- Dynamic fields will be inserted here -->
                         </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Final Document</label>
+                            <div id="view_final_document">
+                                @if ($license->documents->where('document_type', 'final')->count() > 0)
+                                    @foreach ($license->documents->where('document_type', 'final') as $doc)
+                                        <p>
+                                            {{ $doc->document_name ?? 'Document' }}:
+                                            <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank">{{ $doc->file_name }}</a>
+                                        </p>
+                                    @endforeach
+                                @else
+                                    <p>N/A</p>
+                                @endif
+                            </div>
+                        </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -759,20 +888,21 @@
         <!-- Renew License Modal -->
         <div class="modal fade" id="renewLicenseModal" tabindex="-1" aria-labelledby="renewLicenseModalLabel"
             aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="renewLicenseModalLabel">Renew License</h5>
+                        <h5 class="modal-title" id="renewLicenseModalLabel">Renew License: <span id="renewLicenseName" style="color: #1960bd;"></span></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form id="renewLicenseForm" action="{{ route('license.renew') }}" method="POST"
-                            enctype="multipart/form-data">
+                        <form id="renewLicenseForm" action="{{ route('license.renew') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="hidden" name="license_id" id="renew_license_id">
-                            <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">License Basic Details</h6>
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-4">
+                            <input type="hidden" name="license_performance" value="renewed">
+
+                            <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Renew License Basic Details</h6>
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-3">
                                     <label for="renew_company_id" class="form-label">Company Name</label>
                                     <select class="form-select form-select-sm" id="renew_company_id" name="company_id" required>
                                         <option value="">Select Company</option>
@@ -781,13 +911,13 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="renew_groupcom_id" class="form-label">Company Name/License Holder Name</label>
+                                <div class="col-md-3">
+                                    <label for="renew_groupcom_id" class="form-label">License Holder Name</label>
                                     <select class="form-select form-select-sm" id="renew_groupcom_id" name="groupcom_id">
                                         <option value="">Select License Holder</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_license_type_id" class="form-label">License Type</label>
                                     <select class="form-select form-select-sm" id="renew_license_type_id" name="license_type_id" required>
                                         <option value="">Select License Type</option>
@@ -796,13 +926,13 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_license_name_id" class="form-label">License Name</label>
                                     <select class="form-select form-select-sm" id="renew_license_name_id" name="license_name_id" required>
                                         <option value="">Select License Name</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_state_id" class="form-label">State</label>
                                     <select class="form-select form-select-sm" id="renew_state_id" name="state_id" required>
                                         <option value="">Select State</option>
@@ -811,19 +941,19 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_district_id" class="form-label">District</label>
                                     <select class="form-select form-select-sm" id="renew_district_id" name="district_id" required>
                                         <option value="">Select District</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_city_village_id" class="form-label">City/Village</label>
                                     <select class="form-select form-select-sm" id="renew_city_village_id" name="city_village_id" required>
                                         <option value="">Select City/Village</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_pincode" class="form-label">Pincode</label>
                                     <input type="text" class="form-control form-control-sm" id="renew_pincode" name="pincode" required readonly>
                                 </div>
@@ -831,42 +961,42 @@
 
                             <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Authority Person Details</h6>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_responsible_person_name" class="form-label">Authority Name</label>
-                                    <input type="text" class="form-control form-control-sm" id="renew_responsible_person_name" name="responsible_person_name" required readonly>
+                                    <input type="text" id="renew_responsible_person_name" name="responsible_person_name" class="form-control form-control-sm" required readonly>
                                     <input type="hidden" name="responsible_person" id="renew_responsible_person">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_res_email" class="form-label">Email</label>
-                                    <input type="email" class="form-control form-control-sm" id="renew_res_email" name="res_email" required readonly>
+                                    <input type="email" id="renew_res_email" name="res_email" class="form-control form-control-sm" required readonly>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_res_contact" class="form-label">Contact</label>
-                                    <input type="text" class="form-control form-control-sm" id="renew_res_contact" name="res_contact" required readonly>
+                                    <input type="text" id="renew_res_contact" name="res_contact" class="form-control form-control-sm" required readonly>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_res_department" class="form-label">Department</label>
-                                    <input type="text" class="form-control form-control-sm" id="renew_res_department" name="res_department" required readonly>
+                                    <input type="text" id="renew_res_department" name="res_department" class="form-control form-control-sm" required readonly>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_res_designation" class="form-label">Designation</label>
-                                    <input type="text" class="form-control form-control-sm" id="renew_res_designation" name="res_designation" required readonly>
+                                    <input type="text" id="renew_res_designation" name="res_designation" class="form-control form-control-sm" required readonly>
                                 </div>
                             </div>
 
                             <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Other Details</h6>
                             <div class="row g-3 mb-4">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_application_number" class="form-label">Application Number</label>
                                     <input type="text" class="form-control form-control-sm" id="renew_application_number" name="application_number" required>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_letter_date" class="form-label">Date of Application</label>
-                                    <input type="date" class="form-control form-control-sm" id="renew_letter_date" name="letter_date" required>
+                                    <input type="date" class="form-control form-control-sm" id="renew_letter_date" name="letter_date">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_application_document" class="form-label">Application Document</label>
-                                    <div id="renew_application_document_list">
+                                    <div id="renew_application-document-list">
                                         <div class="document-row input-group mb-2">
                                             <input type="text" name="document_name[]" class="form-control form-control-sm" placeholder="Enter document name">
                                             <input type="file" name="application_document[]" class="form-control form-control-sm">
@@ -879,23 +1009,47 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label for="renew_date_of_issue" class="form-label">Date of Registration</label>
-                                    <input type="date" class="form-control form-control-sm" id="renew_date_of_issue" name="date_of_issue" required>
+
+                                <div class="col-md-3">
+                                    <label for="renew_application_status" class="form-label">Application Status<span class="text-danger">*</span></label>
+                                    <select class="form-select form-select-sm" id="renew_application_status" name="application_status" required>
+                                        <option value="">Select</option>
+                                        <option value="Submitted">Submitted</option>
+                                        <option value="Under review">Under review</option>
+                                        <option value="Approved">Approved</option>
+                                        <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </select>
+                                    <input type="text" class="form-control form-control-sm" id="renew_application_status_input" name="application_status" value="Approved" readonly style="display: none;">
                                 </div>
-                                <div class="col-md-4">
+
+                                <div class="col-md-3" id="renew_withdrawn_remark_section" style="display: none;">
+                                    <label for="renew_withdrawn_remark" class="form-label">Withdrawn Remark</label>
+                                    <textarea class="form-control form-control-sm" id="renew_withdrawn_remark" name="withdrawn_remark" rows="1" placeholder="Enter withdrawn remark"></textarea>
+                                </div>
+
+                                <div class="col-md-3" id="renew_rejected_remark_section" style="display: none;">
+                                    <label for="renew_rejected_remark" class="form-label">Rejected Remark</label>
+                                    <textarea class="form-control form-control-sm" id="renew_rejected_remark" name="rejected_remark" rows="1" placeholder="Enter rejected remark"></textarea>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label for="renew_date_of_issue" class="form-label">Date of Registration</label>
+                                    <input type="date" class="form-control form-control-sm" id="renew_date_of_issue" name="date_of_issue">
+                                </div>
+                                <div class="col-md-3">
                                     <label for="renew_registration_number" class="form-label">Registration Number</label>
                                     <input type="text" class="form-control form-control-sm" id="renew_registration_number" name="registration_number">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_certificate_number" class="form-label">Certificate Number</label>
                                     <input type="text" class="form-control form-control-sm" id="renew_certificate_number" name="certificate_number">
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_valid_upto" class="form-label">Valid Upto</label>
                                     <input type="date" class="form-control form-control-sm" id="renew_valid_upto" name="valid_upto" required>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label for="renew_lis_status" class="form-label">License Status</label>
                                     <select class="form-select form-select-sm" id="renew_lis_status" name="lis_status" required>
                                         <option value="">Select</option>
@@ -903,22 +1057,19 @@
                                         <option value="Deactive">Expired</option>
                                     </select>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Add CC Email</label>
                                     <select class="form-select form-select-sm" id="renew_reminder_option" name="reminder_option" required>
                                         <option value="N">No</option>
                                         <option value="Y">Yes</option>
                                     </select>
                                 </div>
-
-                                 <div class="col-md-6 mb-3" id="renew_reminder-email-section" style="display: none;">
+                                <div class="col-md-3" id="renew_reminder-email-section" style="display: none;">
                                     <label class="form-label">Reminder Emails</label>
                                     <div id="renew_reminder-email-list">
                                         <div class="input-group mb-2">
-                                            <input type="email" name="reminder_emails[]" class="form-control form-control-sm"
-                                                placeholder="Enter email">
-                                            <button type="button"
-                                                class="btn btn-outline-secondary add-email">Add</button>
+                                            <input type="email" name="reminder_emails[]" class="form-control form-control-sm" placeholder="Enter email">
+                                            <button type="button" class="btn btn-outline-secondary add-email">Add</button>
                                         </div>
                                     </div>
                                 </div>
@@ -928,7 +1079,24 @@
                             <div id="renew_mapped_fields" style="margin-top: 10px;">
                                 <!-- Mapped fields will be dynamically inserted here -->
                             </div>
-                            <input type="hidden" name="license_performance" value="renewed">
+
+                            <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Final Document</h6>
+                            <div class="col-md-6">
+                                <label for="renew_final_document" class="form-label">License Final Document</label>
+                                <div id="renew_final-document-list">
+                                    <div class="document-row input-group mb-2">
+                                        <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                                        <input type="file" name="final_document[]" class="form-control form-control-sm">
+                                        <span class="input-group-text bg-white border-0">
+                                            <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                                        </span>
+                                        <span class="input-group-text bg-white border-0" style="display: none;">
+                                            <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-success">Renew License</button>
                         </form>
                     </div>
@@ -936,7 +1104,7 @@
             </div>
         </div>
 
-       <!-- History License Modal -->
+        <!-- History License Modal -->
         <div class="modal fade" id="historyLicenseModal" tabindex="-1" aria-labelledby="historyLicenseModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
                 <div class="modal-content">
@@ -970,77 +1138,100 @@
             </div>
         </div>
 
-        <!-- Off-Canvas Panel for More Filters -->
-        <div class="offcanvas offcanvas-end" tabindex="-1" id="filterOffcanvas" aria-labelledby="filterOffcanvasLabel">
-            <div class="offcanvas-header">
-                <h5 class="offcanvas-title" id="filterOffcanvasLabel">More Filters</h5>
+        <!-- Off-Canvas Panel for Advanced Filters -->
+        <div class="offcanvas offcanvas-end shadow-lg border-0" tabindex="-1" id="filterOffcanvas" aria-labelledby="filterOffcanvasLabel">
+            <div class="offcanvas-header bg-light border-bottom">
+                <h5 class="offcanvas-title fw-bold" id="filterOffcanvasLabel">
+                    <i class="ri-filter-3-line me-2 text-primary"></i> Advanced Filters
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
+
             <div class="offcanvas-body">
                 <form id="moreFiltersForm">
-                    <div class="mb-3">
-                        <label for="company_filter" class="form-label">Filter by Company</label>
-                        <select class="form-select form-select-sm" id="company_filter" name="company_filter">
-                            <option value="">Select Company</option>
-                            @foreach ($companies as $company)
-                                <option value="{{ $company->id }}">{{ $company->company_name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <div class="row g-3">
+                        <!-- Company -->
+                        <div class="col-md-6">
+                            <label for="company_filter" class="form-label fw-semibold">Company</label>
+                            <select class="form-select form-select-sm" id="company_filter" name="company_filter">
+                                <option value="">All Companies</option>
+                                @foreach ($companies as $company)
+                                    <option value="{{ $company->id }}">{{ $company->company_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                    <div class="mb-3">
-                        <label for="license_type_filter" class="form-label">Filter by License Type</label>
-                        <select class="form-select form-select-sm" id="license_type_filter" name="license_type_filter">
-                            <option value="">Select License Type</option>
-                            @foreach ($licenses->groupBy('license_type_id')->sortBy(function($group) {
-                                return $group->first()->licenseType->license_type ?? 'N/A';
-                            }) as $license)
-                                @if ($license->first()->licenseType && $license->first()->license_type_id !== null)
-                                    <option value="{{ $license->first()->license_type_id }}">
-                                        {{ $license->first()->licenseType->license_type }}
-                                    </option>
+                        <!-- License Type -->
+                        <div class="col-md-6">
+                            <label for="license_type_filter" class="form-label fw-semibold">License Type</label>
+                            <select class="form-select form-select-sm" id="license_type_filter" name="license_type_filter">
+                                <option value="">All License Types</option>
+                                @foreach ($licenses->groupBy('license_type_id')->sortBy(fn($group) => $group->first()->licenseType->license_type ?? 'N/A') as $license)
+                                    @if ($license->first()->licenseType && $license->first()->license_type_id !== null)
+                                        <option value="{{ $license->first()->license_type_id }}">
+                                            {{ $license->first()->licenseType->license_type }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- License Name -->
+                        <div class="col-md-6">
+                            <label for="license_name_filter" class="form-label fw-semibold">License Name</label>
+                            <select class="form-select form-select-sm" id="license_name_filter" name="license_name_filter">
+                                <option value="">All License Names</option>
+                                @foreach ($licenses->groupBy('license_name_id')->sortBy(fn($group) => $group->first()->licenseName->license_name ?? 'N/A') as $license)
+                                    @if ($license->first()->licenseName)
+                                        <option value="{{ $license->first()->license_name_id }}">
+                                            {{ $license->first()->licenseName->license_name }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- License Status -->
+                        <div class="col-md-6">
+                            <label for="status_filter" class="form-label fw-semibold">License Status</label>
+                            <select class="form-select form-select-sm" id="status_filter" name="status_filter">
+                                <option value="">All Statuses</option>
+                                <option value="Active">Active</option>
+                                <option value="Deactive">Expired</option>
+                                <option value="Surrendered">Surrendered</option>
+                                <option value="Revoked">Revoked</option>
+                            </select>
+                        </div>
+
+                        <!-- Issuing Authority-wise -->
+                        <div class="col-md-6">
+                            <label for="issuing_authority_filter" class="form-label fw-semibold">Issuing Authority</label>
+                            <select class="form-select form-select-sm" id="issuing_authority_filter" name="issuing_authority_filter">
+                                <option value="">All Issuing Authorities</option>
+                                @if (isset($employees) && $employees->isNotEmpty())
+                                    @foreach ($employees as $employee)
+                                        <option value="{{ $employee->id }}">{{ $employee->emp_name }}</option>
+                                    @endforeach
+                                @else
+                                    <option value="" disabled>No Issuing Authorities Available</option>
                                 @endif
-                            @endforeach
-                        </select>
+                            </select>
+                        </div>
+
                     </div>
 
-                    <div class="mb-3">
-                        <label for="license_name_filter" class="form-label">Filter by License Name</label>
-                        <select class="form-select form-select-sm" id="license_name_filter" name="license_name_filter">
-                            <option value="">Select License Name</option>
-                            @foreach ($licenses->groupBy('license_name_id')->sortBy(function($group) {
-                                return $group->first()->licenseName->license_name ?? 'N/A';
-                            }) as $license)
-                                @if ($license->first()->licenseName)
-                                    <option value="{{ $license->first()->license_name_id }}">
-                                        {{ $license->first()->licenseName->license_name }}
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                    <label for="status_filter" class="form-label">Filter by License Status</label>
-                    <select class="form-select form-select-sm" id="status_filter" name="status_filter">
-                        <option value="">All Statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Deactive">Expired</option>
-                    </select>
-                </div>
-                    
-                    <div class="d-flex justify-content-end">
-                        <button type="button" class="btn btn-primary btn-sm me-2" id="apply_more_filters">
-                            <i class="ri-filter-3-line me-1"></i> Apply Filter
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill" id="apply_more_filters">
+                            <i class="ri-filter-3-line me-1"></i> Apply
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="reset_filters">
-                            <i class="ri-restart-line me-1"></i> Reset
+                        <button type="button" class="btn btn-sm btn-light rounded-pill" id="reset_filters">
+                            <i class="ri-restart-line me-1"></i> Clear
                         </button>
                     </div>
                 </form>
             </div>
         </div>
-
     </div>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @endsection
@@ -1048,7 +1239,7 @@
 @push('custom-js')
 <script>
     $(document).ready(function() {
-
+        
         flatpickr("#start_date", {
             dateFormat: "Y-m-d",       
             altInput: true,
@@ -1076,6 +1267,7 @@
             info: true,
             lengthChange: true,
             pageLength: 10,
+            responsive: true,
             lengthMenu: [10, 25, 50, 100]
         });
 
@@ -1096,6 +1288,7 @@
                 let licenseTypeId = $('#license_type_filter').val();
                 let licenseNameId = $('#license_name_filter').val();
                 let statusFilter = $('#status_filter').val();
+                let issuingAuthorityId = $('#issuing_authority_filter').val();
 
                 // Date filter logic
                 let dateFilterPass = true;
@@ -1143,7 +1336,15 @@
                     statusFilterPass = rowStatus === statusFilter;
                 }
 
-                let result = dateFilterPass && companyFilterPass && licenseNameFilterPass && licenseTypeFilterPass && statusFilterPass;
+                // Issuing authority filter logic
+                let issuingAuthorityFilterPass = true;
+                if (issuingAuthorityId) {
+                    let row = table.row(dataIndex).node();
+                    let rowResponsiblePersonId = $(row).attr('data-responsible-person-id') || '';
+                    issuingAuthorityFilterPass = String(rowResponsiblePersonId) === String(issuingAuthorityId);
+                }
+
+                let result = dateFilterPass && companyFilterPass && licenseNameFilterPass && licenseTypeFilterPass && statusFilterPass && issuingAuthorityFilterPass;
                 return result;
             }
         );
@@ -1165,7 +1366,8 @@
             let companyId = $('#company_filter').val();
             let licenseTypeId = $('#license_type_filter').val();
             let licenseNameId = $('#license_name_filter').val();
-            let statusId = $('#status_filter').val();            
+            let statusId = $('#status_filter').val();   
+            let issuingAuthorityId = $('#issuing_authority_filter').val();         
             table.draw();
             $('#filterOffcanvas').offcanvas('hide'); 
         });
@@ -1178,6 +1380,7 @@
             $('#license_type_filter').val('');
             $('#license_name_filter').val('');
             $('#status_filter').val('');
+            $('#issuing_authority_filter').val('');
             table.draw();
             $('#filterOffcanvas').offcanvas('hide'); 
         });
@@ -1353,12 +1556,12 @@
 
         // Toggle application status field
         function toggleApplicationStatus() {
-            if (checkDocumentUploaded()) {
-                $('#application_status_select').hide().prop('required', false);
-                $('#application_status_input').show().prop('required', true);
+          if (checkDocumentUploaded()) {
+                $('#application_status_select').hide().prop('required', false).prop('disabled', true).removeAttr('name');
+                $('#application_status_input').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
             } else {
-                $('#application_status_select').show().prop('required', true);
-                $('#application_status_input').hide().prop('required', false);
+                $('#application_status_select').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
+                $('#application_status_input').hide().prop('required', false).prop('disabled', true).removeAttr('name');
             }
         }
 
@@ -1372,13 +1575,140 @@
 
         // Handle form submission
         $('#addLicenseForm').on('submit', function() {
-            if (checkDocumentUploaded()) {
-                $('#application_status_select').prop('disabled', true);
-                $('#application_status_input').prop('disabled', false);
+           toggleApplicationStatus();
+        });
+
+        // Handle application status change for Add License Modal
+        $('#application_status_select').change(function() {
+            let status = $(this).val();
+            if (status === 'Withdrawn') {
+                $('#withdrawn_remark_section').show();
+                $('#withdrawn_remark').prop('required', true);
+                $('#rejected_remark_section').hide();
+                $('#rejected_remark').prop('required', false).val('');
+                $('#application_status_input').val(''); // Clear hidden input
+            } else if (status === 'Rejected') {
+                $('#rejected_remark_section').show();
+                $('#rejected_remark').prop('required', true);
+                $('#withdrawn_remark_section').hide();
+                $('#withdrawn_remark').prop('required', false).val('');
+                $('#application_status_input').val(''); // Clear hidden input
+            } else if (status === 'Approved') {
+                $('#withdrawn_remark_section').hide();
+                $('#withdrawn_remark').prop('required', false).val('');
+                $('#rejected_remark_section').hide();
+                $('#rejected_remark').prop('required', false).val('');
+                $('#application_status_input').val('Approved');
             } else {
-                $('#application_status_select').prop('disabled', false);
-                $('#application_status_input').prop('disabled', true);
+                $('#withdrawn_remark_section').hide();
+                $('#withdrawn_remark').prop('required', false).val('');
+                $('#rejected_remark_section').hide();
+                $('#rejected_remark').prop('required', false).val('');
+                $('#application_status_input').val(''); // Clear hidden input
             }
+        });
+
+        function checkEditDocumentUploaded() {
+            let filesSelected = false;
+            $('#edit_application-document-list input[type="file"]').each(function() {
+                if ($(this).val()) {
+                    filesSelected = true;
+                    return false;
+                }
+            });
+            return filesSelected;
+        }
+
+        function toggleEditApplicationStatus() {
+            if (checkEditDocumentUploaded()) {
+                $('#edit_application_status').hide().prop('required', false).prop('disabled', true).removeAttr('name');
+                $('#edit_application_status_input').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
+            } else {
+                $('#edit_application_status').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
+                $('#edit_application_status_input').hide().prop('required', false).prop('disabled', true).removeAttr('name');
+            }
+        }
+
+        $(document).ready(function() {
+            toggleEditApplicationStatus();
+            $(document).on('change', '#edit_application-document-list input[type="file"]', function() {
+                toggleEditApplicationStatus();
+            });
+            $('#edit_application_status').change(function() {
+                let status = $(this).val();
+                if (status === 'Withdrawn') {
+                    $('#edit_withdrawn_remark_section').show();
+                    $('#edit_withdrawn_remark').prop('required', true);
+                    $('#edit_rejected_remark_section').hide();
+                    $('#edit_rejected_remark').prop('required', false).val('');
+                } else if (status === 'Rejected') {
+                    $('#edit_rejected_remark_section').show();
+                    $('#edit_rejected_remark').prop('required', true);
+                    $('#edit_withdrawn_remark_section').hide();
+                    $('#edit_withdrawn_remark').prop('required', false).val('');
+                } else {
+                    $('#edit_withdrawn_remark_section').hide();
+                    $('#edit_withdrawn_remark').prop('required', false).val('');
+                    $('#edit_rejected_remark_section').hide();
+                    $('#edit_rejected_remark').prop('required', false).val('');
+                }
+                toggleEditApplicationStatus();
+            });
+            $('#editLicenseForm').on('submit', function() {
+                toggleEditApplicationStatus();
+            });
+        });
+
+
+        function checkRenewDocumentUploaded() {
+            let filesSelected = false;
+            $('#renew_application_document_list input[type="file"]').each(function() {
+                if ($(this).val()) {
+                    filesSelected = true;
+                    return false;
+                }
+            });
+            return filesSelected;
+        }
+
+        function toggleRenewApplicationStatus() {
+            if (checkRenewDocumentUploaded()) {
+                $('#renew_application_status').hide().prop('required', false).prop('disabled', true).removeAttr('name');
+                $('#renew_application_status_input').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
+            } else {
+                $('#renew_application_status').show().prop('required', true).prop('disabled', false).attr('name', 'application_status');
+                $('#renew_application_status_input').hide().prop('required', false).prop('disabled', true).removeAttr('name');
+            }
+        }
+
+        $(document).ready(function() {
+            toggleRenewApplicationStatus();
+            $(document).on('change', '#renew_application_document_list input[type="file"]', function() {
+                toggleRenewApplicationStatus();
+            });
+            $('#renew_application_status').change(function() {
+                let status = $(this).val();
+                if (status === 'Withdrawn') {
+                    $('#renew_withdrawn_remark_section').show();
+                    $('#renew_withdrawn_remark').prop('required', true);
+                    $('#renew_rejected_remark_section').hide();
+                    $('#renew_rejected_remark').prop('required', false).val('');
+                } else if (status === 'Rejected') {
+                    $('#renew_rejected_remark_section').show();
+                    $('#renew_rejected_remark').prop('required', true);
+                    $('#renew_withdrawn_remark_section').hide();
+                    $('#renew_withdrawn_remark').prop('required', false).val('');
+                } else {
+                    $('#renew_withdrawn_remark_section').hide();
+                    $('#renew_withdrawn_remark').prop('required', false).val('');
+                    $('#renew_rejected_remark_section').hide();
+                    $('#renew_rejected_remark').prop('required', false).val('');
+                }
+                toggleRenewApplicationStatus();
+            });
+            $('#renewLicenseForm').on('submit', function() {
+                toggleRenewApplicationStatus();
+            });
         });
 
         let fieldGroups = [];
@@ -1435,7 +1765,36 @@
         }
 
         // Populate group companies
-        function populateGroupCompanies(companyId, selectId, callback, selectedId = null) {
+        // function populateGroupCompanies(companyId, selectId, callback, selectedId = null) {
+        //     if (!companyId) {
+        //         $('#' + selectId).html('<option value="">Select License Holder</option>');
+        //         if (callback) callback();
+        //         return;
+        //     }
+        //     $.ajax({
+        //         url: '/license-group-companies?company_id=' + companyId,
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(response) {
+        //             let options = '<option value="">Select License Holder</option>';
+        //             $.each(response.groupcom, function(index, groupcom) {
+        //                 let value = groupcom.id || '';
+        //                 options += `<option value="${value}">${groupcom.name}</option>`;
+        //             });
+        //             $('#' + selectId).html(options);
+        //             if (selectedId !== null) {
+        //                 $('#' + selectId).val(selectedId);
+        //             }
+        //             if (callback) callback();
+        //         },
+        //         error: function() {
+        //             $('#' + selectId).html('<option value="">Select License Holder</option>');
+        //             if (callback) callback();
+        //         }
+        //     });
+        // }
+
+        function populateGroupCompanies(companyId, selectId, callback, selectedId = null, companyName = null) {
             if (!companyId) {
                 $('#' + selectId).html('<option value="">Select License Holder</option>');
                 if (callback) callback();
@@ -1447,18 +1806,30 @@
                 dataType: 'json',
                 success: function(response) {
                     let options = '<option value="">Select License Holder</option>';
-                    $.each(response.groupcom, function(index, groupcom) {
-                        let value = groupcom.id || '';
-                        options += `<option value="${value}">${groupcom.name}</option>`;
-                    });
+                    // If group companies exist, populate them
+                    if (response.groupcom && response.groupcom.length > 0) {
+                        $.each(response.groupcom, function(index, groupcom) {
+                            let value = groupcom.id || '';
+                            options += `<option value="${value}">${groupcom.name}</option>`;
+                        });
+                    }
+                    // If no group companies or selectedId is null, add company name as an option
+                    if (companyName) {
+                        options += `<option value="" ${selectedId === null ? 'selected' : ''}>${companyName}</option>`;
+                    }
                     $('#' + selectId).html(options);
+                    // Set the selected value if provided
                     if (selectedId !== null) {
                         $('#' + selectId).val(selectedId);
                     }
                     if (callback) callback();
                 },
                 error: function() {
-                    $('#' + selectId).html('<option value="">Select License Holder</option>');
+                    let options = '<option value="">Select License Holder</option>';
+                    if (companyName) {
+                        options += `<option value="" selected>${companyName}</option>`;
+                    }
+                    $('#' + selectId).html(options);
                     if (callback) callback();
                 }
             });
@@ -1625,7 +1996,7 @@
                         const inputName = `mapped_fields[label_${group.label_id}][${rowCounter}][field_name_${field.sub_field_id}]`;
                         const fieldValue = rowData[`field_name_${field.sub_field_id}`] || '';
 
-                        let fieldHtml = `<div class="col-md-6 mb-3">
+                        let fieldHtml = `<div class="col-md-3 mb-3">
                             <label class="form-label">${field.field_name || 'Unnamed Field'}</label>`;
 
                         if (isViewMode) {
@@ -1716,9 +2087,13 @@
                     type: 'GET',
                     dataType: 'json',
                     success: function(response) {
-                        $('#state_id').val(response.state_id || '');
+                        $('#state_id').val(response.state_id || '');  $('#state_id_hidden').val(response.state_id || '');
                         populateDistricts(response.state_id, 'district_id', 'city_village_id', 'pincode', response.district_id, function() {
+                            $('#district_id').val(response.district_id || '').prop('disabled', true);
+                            $('#district_id_hidden').val(response.district_id || '');
                             populateCityVillages(response.district_id, 'city_village_id', 'pincode', response.city_village_id, function() {
+                                $('#city_village_id').val(response.city_village_id || '').prop('disabled', true);
+                                $('#city_village_id_hidden').val(response.city_village_id || '');
                                 $('#pincode').val(response.pincode || '');
                             });
                         });
@@ -1820,7 +2195,7 @@
             let rowHtml = `<div class="row field-row" data-row-index="${rowIndex}">`;
             group.fields.forEach(function(field) {
                 const inputName = `mapped_fields[label_${group.label_id}][${rowIndex}][field_name_${field.sub_field_id}]`;
-                let fieldHtml = `<div class="col-md-6 mb-3">
+                let fieldHtml = `<div class="col-md-3 mb-3">
                     <label class="form-label">${field.field_name}</label>`;
                 if (field.input_type === 'select' && field.options && field.options.length > 0) {
                     fieldHtml += `<select name="${inputName}" class="form-select form-select-sm" required>
@@ -1853,101 +2228,772 @@
         });
 
         // View License
+        // $(document).on('click', '.viewLicenseBtn', function() {
+        //     let licenseId = $(this).data('id');
+        //     $.ajax({
+        //         url: '/get-license-details/' + licenseId,
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(response) {
+        //             let license = response.license;
+        //             if (license.license_name_id) {
+        //             populateLicenseNames(license.license_type_id, 'renew_license_name_id', function() { 
+        //                 let licenseNameOption = $(`#renew_license_name_id option[value="${license.license_name_id}"]`).text();
+        //                 $('#viewLicenseName').text(licenseNameOption || license.license_name || 'N/A');
+        //                 $('#view_license_name').text(licenseNameOption || license.license_name || 'N/A');
+        //             });
+        //             } else if (license.licenseName && license.licenseName.license_name) {
+        //                 $('#viewLicenseName').text(license.licenseName.license_name);
+        //                 $('#view_license_name').text(license.licenseName.license_name);
+        //             } else {
+        //                 $('#viewLicenseName').text('N/A');
+        //                 $('#view_license_name').text('N/A');
+        //             }
+        //             $('#view_company_name').text(license.company?.company_name || 'N/A');
+        //             $('#view_groupcom_name').text(license.groupcom?.name || license.company?.company_name || 'N/A');
+        //             $('#view_license_type').text(license.licenseType?.license_type || 'N/A');
+        //             $('#view_state').text(license.state?.state_name || 'N/A');
+        //             $('#view_district').text(license.district?.district_name || 'N/A');
+        //             $('#view_city_village').text(license.cityVillage?.city_village_name || 'N/A');
+        //             $('#view_pincode').text(license.pincode || 'N/A');
+        //             if (license.responsible_person) {
+        //                 $.ajax({
+        //                     url: '/get-employee-details/' + license.responsible_person,
+        //                     type: 'GET',
+        //                     dataType: 'json',
+        //                     success: function(empResponse) {
+        //                         $('#view_responsible_person_name').text(empResponse.emp_name || 'N/A');
+        //                     },
+        //                     error: function() {
+        //                         $('#view_responsible_person_name').text('N/A');
+        //                     }
+        //                 });
+        //             } else {
+        //                 $('#view_responsible_person_name').text('N/A');
+        //             }                    
+        //             $('#view_res_email').text(license.res_email || 'N/A');
+        //             $('#view_res_contact').text(license.res_contact || 'N/A');
+        //             $('#view_res_department').text(license.res_department || 'N/A');
+        //             $('#view_res_designation').text(license.res_designation || 'N/A');
+        //             $('#view_letter_date').text(license.letter_date || 'N/A');
+        //             $('#view_date_of_issue').text(license.date_of_issue || 'N/A');
+        //             $('#view_valid_upto').text(license.valid_upto || 'N/A');
+        //             $('#view_reminder_option').text(license.reminder_option === 'Y' ? 'Yes' : 'No');
+        //             if (license.reminder_option === 'Y' && license.reminder_emails) {
+        //                 $('#view_reminder_emails').text(license.reminder_emails);
+        //                 $('#view_reminder-email-section').show();
+        //             } else {
+        //                 $('#view_reminder_emails').text('');
+        //                 $('#view_reminder-email-section').hide();
+        //             }
+        //             $('#view_application_number').text(license.application_number || 'N/A');
+        //             $('#view_application_status').text(license.application_status || 'N/A');
+        //             $('#view_registration_number').text(license.registration_number || 'N/A');
+        //             $('#view_certificate_number').text(license.certificate_number || 'N/A');
+        //             $('#view_lis_status').text(license.lis_status || 'N/A');
+        //             $('#view_surrendered_remark').text(license.surrendered_remark || 'N/A');
+        //             $('#view_revoked_remark').text(license.revoked_remark || 'N/A');
+        //             $('#view_withdrawn_remark').text(license.withdrawn_remark || 'N/A');
+        //             $('#view_rejected_remark').text(license.rejected_remark || 'N/A');
+
+        //             if (license.application_status === 'Withdrawn') {
+        //                 $('#view_withdrawn_remark_section').show();
+        //                 $('#view_rejected_remark_section').hide();
+        //             } else if (license.application_status === 'Rejected') {
+        //                 $('#view_rejected_remark_section').show();
+        //                 $('#view_withdrawn_remark_section').hide();
+        //             } else {
+        //                 $('#view_withdrawn_remark_section').hide();
+        //                 $('#view_rejected_remark_section').hide();
+        //             }
+                    
+        //             if (license.lis_status === 'Surrendered') {
+        //                 $('#view_surrendered_remark_section').show();
+        //                 $('#view_revoked_remark_section').hide();
+        //             } else if (license.lis_status === 'Revoked') {
+        //                 $('#view_surrendered_remark_section').hide();
+        //                 $('#view_revoked_remark_section').show();
+        //             } else {
+        //                 $('#view_surrendered_remark_section').hide();
+        //                 $('#view_revoked_remark_section').hide();
+        //             }
+        //             $('#view_license_creation').remove();
+        //             $('#view_license_creation_remark').remove();
+        //             let licenseCreationHtml = `
+        //                 <div class="col-md-6 mb-3">
+        //                     <label class="form-label">License Creation</label>
+        //                     <p id="view_license_creation" class="form-control-static">${license.license_performance || 'New'}</p>
+        //                 </div>`;
+        //             let remarkHtml = license.license_performance === 'modification' ? `
+        //                 <div class="col-md-6 mb-3">
+        //                     <label class="form-label">Remark</label>
+        //                     <p id="view_license_creation_remark" class="form-control-static">${license.license_creation_remark || 'N/A'}</p>
+        //                 </div>` : '';
+        //             $('#view_mapped_fields');
+        //             let documentList = $('#view_application_document');
+        //             documentList.html('');
+        //             if (license.documents && license.documents.length > 0) {
+        //                 license.documents.forEach(function(doc) {
+        //                     let docHtml = `
+        //                         <p>
+        //                             ${doc.document_name || 'Document'}: 
+        //                             <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'View Document'}</a>
+        //                         </p>`;
+        //                     documentList.append(docHtml);
+        //                 });
+        //             } else {
+        //                 documentList.html('<p>N/A</p>');
+        //             }
+
+        //             $.ajax({
+        //                 url: '/license-mapped-fields/' + license.license_name_id,
+        //                 type: 'GET',
+        //                 dataType: 'json',
+        //                 success: function(response) {
+        //                     fieldGroups = response.fields || [];
+        //                     let existingData = {};
+
+        //                     let promises = fieldGroups.map(function(group) {
+        //                         return new Promise(function(resolve) {
+        //                             $.ajax({
+        //                                 url: '/get-label-data/' + license.id + '/label_' + group.label_id,
+        //                                 type: 'GET',
+        //                                 dataType: 'json',
+        //                                 success: function(dataResponse) {
+        //                                     existingData['label_' + group.label_id] = dataResponse.rows || [{}];
+        //                                     resolve();
+        //                                 },
+        //                                 error: function() {
+        //                                     existingData['label_' + group.label_id] = [{}];
+        //                                     resolve();
+        //                                 }
+        //                             });
+        //                         });
+        //                     });
+
+        //                     Promise.all(promises).then(function() {
+        //                         loadLicenseFields('view_mapped_fields', fieldGroups, existingData, 'view');
+        //                         $('#view_mapped_fields').find('input, select').prop('disabled', true);
+        //                     });
+        //                 },
+        //                 error: function() {
+        //                     $('#view_mapped_fields').html('');
+        //                     fieldGroups = [];
+        //                 }
+        //             });
+        //         },
+        //         error: function() {
+        //             alert('Failed to load license details.');
+        //         }
+        //     });
+        // });
+
+        function populateResponsibleDetailsForView(licenseTypeId, licenseNameId, modalPrefix = 'view_') {
+            $('#' + modalPrefix + 'responsible_person_name').text('N/A');
+            $('#' + modalPrefix + 'res_email').text('N/A');
+            $('#' + modalPrefix + 'res_contact').text('N/A');
+            $('#' + modalPrefix + 'res_department').text('N/A');
+            $('#' + modalPrefix + 'res_designation').text('N/A');
+
+            if (licenseTypeId && licenseNameId) {
+                $.ajax({
+                    url: '/get-responsible-details',
+                    type: 'POST',
+                    data: {
+                        license_type_id: licenseTypeId,
+                        license_name_id: licenseNameId
+                    },
+                    success: function(response) {
+                        if (response.status === 'success' && response.data) {
+                            $('#' + modalPrefix + 'responsible_person_name').text(response.data.emp_name || 'N/A');
+                            $('#' + modalPrefix + 'res_email').text(response.data.emp_email || 'N/A');
+                            $('#' + modalPrefix + 'res_contact').text(response.data.emp_contact || 'N/A');
+                            $('#' + modalPrefix + 'res_department').text(response.data.emp_department || 'N/A');
+                            $('#' + modalPrefix + 'res_designation').text(response.data.emp_designation || 'N/A');
+                        } else {
+                            alert('No authorized person found for this license.');
+                            $('#' + modalPrefix + 'responsible_person_name').text('N/A');
+                            $('#' + modalPrefix + 'res_email').text('N/A');
+                            $('#' + modalPrefix + 'res_contact').text('N/A');
+                            $('#' + modalPrefix + 'res_department').text('N/A');
+                            $('#' + modalPrefix + 'res_designation').text('N/A');
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to load responsible details.');
+                        $('#' + modalPrefix + 'responsible_person_name').text('N/A');
+                        $('#' + modalPrefix + 'res_email').text('N/A');
+                        $('#' + modalPrefix + 'res_contact').text('N/A');
+                        $('#' + modalPrefix + 'res_department').text('N/A');
+                        $('#' + modalPrefix + 'res_designation').text('N/A');
+                    }
+                });
+            }
+        }
+
+        // $(document).on('click', '.viewLicenseBtn', function() {
+        //     let licenseId = $(this).data('id');
+        //     $.ajax({
+        //         url: '/get-license-details/' + licenseId,
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(response) {
+        //             let license = response.license;
+        //             if (!license) {
+        //                 alert('No license data found.');
+        //                 return;
+        //             }
+        //             if (license.license_name_id) {
+        //                 populateLicenseNames(license.license_type_id, 'renew_license_name_id', function() { 
+        //                     let licenseNameOption = $(`#renew_license_name_id option[value="${license.license_name_id}"]`).text();
+        //                     $('#viewLicenseName').text(licenseNameOption || license.license_name || 'N/A');
+        //                     $('#view_license_name').text(licenseNameOption || license.license_name || 'N/A');
+        //                 });
+        //             } else if (license.licenseName && license.licenseName.license_name) {
+        //                 $('#viewLicenseName').text(license.licenseName.license_name);
+        //                 $('#view_license_name').text(license.licenseName.license_name);
+        //             } else {
+        //                 $('#viewLicenseName').text('N/A');
+        //                 $('#view_license_name').text('N/A');
+        //             }
+        //             $('#view_company_name').text(license.company?.company_name || 'N/A');
+        //             $('#view_groupcom_name').text(license.groupcom?.name || license.company?.company_name || 'N/A');
+        //             $('#view_license_type').text(license.licenseType?.license_type || 'N/A');
+        //             $('#view_state').text(license.state?.state_name || 'N/A');
+        //             $('#view_district').text(license.district?.district_name || 'N/A');
+        //             $('#view_city_village').text(license.cityVillage?.city_village_name || 'N/A');
+        //             $('#view_pincode').text(license.pincode || 'N/A');
+
+        //             // Populate responsible person details
+        //             if (license.license_type_id && license.license_name_id) {
+        //                 populateResponsibleDetailsForView(license.license_type_id, license.license_name_id, 'view_');
+        //             } else {
+        //                 $('#view_responsible_person_name').text('N/A');
+        //                 $('#view_res_email').text('N/A');
+        //                 $('#view_res_contact').text('N/A');
+        //                 $('#view_res_department').text('N/A');
+        //                 $('#view_res_designation').text('N/A');
+        //             }
+
+        //             $('#view_letter_date').text(license.letter_date || 'N/A');
+        //             $('#view_date_of_issue').text(license.date_of_issue || 'N/A');
+        //             $('#view_valid_upto').text(license.valid_upto || 'N/A');
+        //             $('#view_reminder_option').text(license.reminder_option === 'Y' ? 'Yes' : 'No');
+        //             if (license.reminder_option === 'Y' && license.reminder_emails) {
+        //                 $('#view_reminder_emails').text(license.reminder_emails);
+        //                 $('#view_reminder-email-section').show();
+        //             } else {
+        //                 $('#view_reminder_emails').text('N/A');
+        //                 $('#view_reminder-email-section').hide();
+        //             }
+        //             $('#view_application_number').text(license.application_number || 'N/A');
+        //             $('#view_application_status').text(license.application_status || 'N/A');
+        //             $('#view_registration_number').text(license.registration_number || 'N/A');
+        //             $('#view_certificate_number').text(license.certificate_number || 'N/A');
+        //             $('#view_lis_status').text(license.lis_status || 'N/A');
+        //             $('#view_surrendered_remark').text(license.surrendered_remark || 'N/A');
+        //             $('#view_revoked_remark').text(license.revoked_remark || 'N/A');
+        //             $('#view_withdrawn_remark').text(license.withdrawn_remark || 'N/A');
+        //             $('#view_rejected_remark').text(license.rejected_remark || 'N/A');
+
+        //             if (license.application_status === 'Withdrawn') {
+        //                 $('#view_withdrawn_remark_section').show();
+        //                 $('#view_rejected_remark_section').hide();
+        //             } else if (license.application_status === 'Rejected') {
+        //                 $('#view_rejected_remark_section').show();
+        //                 $('#view_withdrawn_remark_section').hide();
+        //             } else {
+        //                 $('#view_withdrawn_remark_section').hide();
+        //                 $('#view_rejected_remark_section').hide();
+        //             }
+                    
+        //             if (license.lis_status === 'Surrendered') {
+        //                 $('#view_surrendered_remark_section').show();
+        //                 $('#view_revoked_remark_section').hide();
+        //             } else if (license.lis_status === 'Revoked') {
+        //                 $('#view_surrendered_remark_section').hide();
+        //                 $('#view_revoked_remark_section').show();
+        //             } else {
+        //                 $('#view_surrendered_remark_section').hide();
+        //                 $('#view_revoked_remark_section').hide();
+        //             }
+        //             $('#view_license_creation').remove();
+        //             $('#view_license_creation_remark').remove();
+        //             let licenseCreationHtml = `
+        //                 <div class="col-md-6 mb-3">
+        //                     <label class="form-label">License Creation</label>
+        //                     <p id="view_license_creation" class="form-control-static">${license.license_performance || 'New'}</p>
+        //                 </div>`;
+        //             let remarkHtml = license.license_performance === 'modification' ? `
+        //                 <div class="col-md-6 mb-3">
+        //                     <label class="form-label">Remark</label>
+        //                     <p id="view_license_creation_remark" class="form-control-static">${license.license_creation_remark || 'N/A'}</p>
+        //                 </div>` : '';
+        //             $('#view_mapped_fields');
+                    
+        //             let documentList = $('#view_application_document');
+        //             documentList.html('');
+        //             if (license.documents && license.documents.length > 0) {
+        //                 license.documents.forEach(function(doc) {
+        //                     if (doc.document_type === 'application') {
+        //                         let docHtml = `
+        //                             <p>
+        //                                 ${doc.document_name || 'Document'}: 
+        //                                 <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'View Document'}</a>
+        //                             </p>`;
+        //                         documentList.append(docHtml);
+        //                     }
+        //                 });
+        //             } else {
+        //                 documentList.html('<p>N/A</p>');
+        //             }
+
+        //             $.ajax({
+        //                 url: '/license-mapped-fields/' + license.license_name_id,
+        //                 type: 'GET',
+        //                 dataType: 'json',
+        //                 success: function(response) {
+        //                     fieldGroups = response.fields || [];
+        //                     let existingData = {};
+
+        //                     let promises = fieldGroups.map(function(group) {
+        //                         return new Promise(function(resolve) {
+        //                             $.ajax({
+        //                                 url: '/get-label-data/' + license.id + '/label_' + group.label_id,
+        //                                 type: 'GET',
+        //                                 dataType: 'json',
+        //                                 success: function(dataResponse) {
+        //                                     existingData['label_' + group.label_id] = dataResponse.rows || [{}];
+        //                                     resolve();
+        //                                 },
+        //                                 error: function() {
+        //                                     existingData['label_' + group.label_id] = [{}];
+        //                                     resolve();
+        //                                 }
+        //                             });
+        //                         });
+        //                     });
+
+        //                     Promise.all(promises).then(function() {
+        //                         loadLicenseFields('view_mapped_fields', fieldGroups, existingData, 'view');
+        //                         $('#view_mapped_fields').find('input, select').prop('disabled', true);
+        //                     });
+        //                 },
+        //                 error: function() {
+        //                     $('#view_mapped_fields').html('');
+        //                     fieldGroups = [];
+        //                 }
+        //             });
+        //         },
+        //         error: function() {
+        //             alert('Failed to load license details.');
+        //         }
+        //     });
+        // });
+
         $(document).on('click', '.viewLicenseBtn', function() {
-            let licenseId = $(this).data('id');
+    let licenseId = $(this).data('id');
+    $.ajax({
+        url: '/get-license-details/' + licenseId,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            let license = response.license;
+            if (!license) {
+                alert('No license data found.');
+                return;
+            }
+            if (license.license_name_id) {
+                populateLicenseNames(license.license_type_id, 'renew_license_name_id', function() { 
+                    let licenseNameOption = $(`#renew_license_name_id option[value="${license.license_name_id}"]`).text();
+                    $('#viewLicenseName').text(licenseNameOption || license.license_name || 'N/A');
+                    $('#view_license_name').text(licenseNameOption || license.license_name || 'N/A');
+                });
+            } else if (license.licenseName && license.licenseName.license_name) {
+                $('#viewLicenseName').text(license.licenseName.license_name);
+                $('#view_license_name').text(license.licenseName.license_name);
+            } else {
+                $('#viewLicenseName').text('N/A');
+                $('#view_license_name').text('N/A');
+            }
+            $('#view_company_name').text(license.company?.company_name || 'N/A');
+            $('#view_groupcom_name').text(license.groupcom?.name || license.company?.company_name || 'N/A');
+            $('#view_license_type').text(license.licenseType?.license_type || 'N/A');
+            $('#view_state').text(license.state?.state_name || 'N/A');
+            $('#view_district').text(license.district?.district_name || 'N/A');
+            $('#view_city_village').text(license.cityVillage?.city_village_name || 'N/A');
+            $('#view_pincode').text(license.pincode || 'N/A');
+
+            // Populate responsible person details based on lis_status
+            if (license.lis_status === 'Active') {
+                if (license.license_type_id && license.license_name_id) {
+                    populateResponsibleDetailsForView(license.license_type_id, license.license_name_id, 'view_');
+                } else {
+                    $('#view_responsible_person_name').text('N/A');
+                    $('#view_res_email').text('N/A');
+                    $('#view_res_contact').text('N/A');
+                    $('#view_res_department').text('N/A');
+                    $('#view_res_designation').text('N/A');
+                }
+            } else {
+                if (license.responsible_person) {
+                    $.ajax({
+                        url: '/get-employee-details/' + license.responsible_person,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(empResponse) {
+                            $('#view_responsible_person_name').text(empResponse.emp_name || 'N/A');
+                        },
+                        error: function() {
+                            $('#view_responsible_person_name').text('N/A');
+                        }
+                    });
+                } else {
+                    $('#view_responsible_person_name').text('N/A');
+                }
+                $('#view_res_email').text(license.res_email || 'N/A');
+                $('#view_res_contact').text(license.res_contact || 'N/A');
+                $('#view_res_department').text(license.res_department || 'N/A');
+                $('#view_res_designation').text(license.res_designation || 'N/A');
+            }
+
+            $('#view_letter_date').text(license.letter_date || 'N/A');
+            $('#view_date_of_issue').text(license.date_of_issue || 'N/A');
+            $('#view_valid_upto').text(license.valid_upto || 'N/A');
+            $('#view_reminder_option').text(license.reminder_option === 'Y' ? 'Yes' : 'No');
+            if (license.reminder_option === 'Y' && license.reminder_emails) {
+                $('#view_reminder_emails').text(license.reminder_emails);
+                $('#view_reminder-email-section').show();
+            } else {
+                $('#view_reminder_emails').text('N/A');
+                $('#view_reminder-email-section').hide();
+            }
+            $('#view_application_number').text(license.application_number || 'N/A');
+            $('#view_application_status').text(license.application_status || 'N/A');
+            $('#view_registration_number').text(license.registration_number || 'N/A');
+            $('#view_certificate_number').text(license.certificate_number || 'N/A');
+            $('#view_lis_status').text(license.lis_status || 'N/A');
+            $('#view_surrendered_remark').text(license.surrendered_remark || 'N/A');
+            $('#view_revoked_remark').text(license.revoked_remark || 'N/A');
+            $('#view_withdrawn_remark').text(license.withdrawn_remark || 'N/A');
+            $('#view_rejected_remark').text(license.rejected_remark || 'N/A');
+
+            if (license.application_status === 'Withdrawn') {
+                $('#view_withdrawn_remark_section').show();
+                $('#view_rejected_remark_section').hide();
+            } else if (license.application_status === 'Rejected') {
+                $('#view_rejected_remark_section').show();
+                $('#view_withdrawn_remark_section').hide();
+            } else {
+                $('#view_withdrawn_remark_section').hide();
+                $('#view_rejected_remark_section').hide();
+            }
+            
+            if (license.lis_status === 'Surrendered') {
+                $('#view_surrendered_remark_section').show();
+                $('#view_revoked_remark_section').hide();
+            } else if (license.lis_status === 'Revoked') {
+                $('#view_surrendered_remark_section').hide();
+                $('#view_revoked_remark_section').show();
+            } else {
+                $('#view_surrendered_remark_section').hide();
+                $('#view_revoked_remark_section').hide();
+            }
+            $('#view_license_creation').remove();
+            $('#view_license_creation_remark').remove();
+            let licenseCreationHtml = `
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">License Creation</label>
+                    <p id="view_license_creation" class="form-control-static">${license.license_performance || 'New'}</p>
+                </div>`;
+            let remarkHtml = license.license_performance === 'modification' ? `
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Remark</label>
+                    <p id="view_license_creation_remark" class="form-control-static">${license.license_creation_remark || 'N/A'}</p>
+                </div>` : '';
+            $('#view_mapped_fields');
+            
+            let documentList = $('#view_application_document');
+            documentList.html('');
+            if (license.documents && license.documents.length > 0) {
+                license.documents.forEach(function(doc) {
+                    if (doc.document_type === 'application') {
+                        let docHtml = `
+                            <p>
+                                ${doc.document_name || 'Document'}: 
+                                <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'View Document'}</a>
+                            </p>`;
+                        documentList.append(docHtml);
+                    }
+                });
+            } else {
+                documentList.html('<p>N/A</p>');
+            }
+
             $.ajax({
-                url: '/get-license-details/' + licenseId,
+                url: '/license-mapped-fields/' + license.license_name_id,
                 type: 'GET',
                 dataType: 'json',
                 success: function(response) {
-                    let license = response.license;
-                    $('#view_company_name').text(license.company?.company_name || 'N/A');
-                    $('#view_groupcom_name').text(license.groupcom?.name || license.company?.company_name || 'N/A');
-                    $('#view_license_type').text(license.licenseType?.license_type || 'N/A');
-                    $('#view_license_name').text(license.licenseName?.license_name || 'N/A');
-                    $('#view_state').text(license.state?.state_name || 'N/A');
-                    $('#view_district').text(license.district?.district_name || 'N/A');
-                    $('#view_city_village').text(license.cityVillage?.city_village_name || 'N/A');
-                    $('#view_pincode').text(license.pincode || 'N/A');
-                    $('#view_responsible_person').text(license.responsible_person || 'N/A');
-                    $('#view_res_email').text(license.res_email || 'N/A');
-                    $('#view_res_contact').text(license.res_contact || 'N/A');
-                    $('#view_res_department').text(license.res_department || 'N/A');
-                    $('#view_res_designation').text(license.res_designation || 'N/A');
-                    $('#view_letter_date').text(license.letter_date || 'N/A');
-                    $('#view_date_of_issue').text(license.date_of_issue || 'N/A');
-                    $('#view_valid_upto').text(license.valid_upto || 'N/A');
-                    $('#view_reminder_option').text(license.reminder_option === 'Y' ? 'Yes' : 'No');
-                    if (license.reminder_option === 'Y' && license.reminder_emails) {
-                        $('#view_reminder_emails').text(license.reminder_emails);
-                        $('#view_reminder-email-section').show();
-                    } else {
-                        $('#view_reminder_emails').text('');
-                        $('#view_reminder-email-section').hide();
-                    }
-                    $('#view_application_number').text(license.application_number || 'N/A');
-                    $('#view_application_status').text(license.application_status || 'N/A');
-                    $('#view_registration_number').text(license.registration_number || 'N/A');
-                    $('#view_certificate_number').text(license.certificate_number || 'N/A');
-                    $('#view_lis_status').text(license.lis_status || 'N/A');
-                    $('#view_license_creation').remove();
-                    $('#view_license_creation_remark').remove();
-                    let licenseCreationHtml = `
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">License Creation</label>
-                            <p id="view_license_creation" class="form-control-static">${license.license_performance || 'New'}</p>
-                        </div>`;
-                    let remarkHtml = license.license_performance === 'modification' ? `
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Remark</label>
-                            <p id="view_license_creation_remark" class="form-control-static">${license.license_creation_remark || 'N/A'}</p>
-                        </div>` : '';
-                    $('#view_mapped_fields').before(licenseCreationHtml + remarkHtml);
+                    fieldGroups = response.fields || [];
+                    let existingData = {};
 
-                    $.ajax({
-                        url: '/license-mapped-fields/' + license.license_name_id,
-                        type: 'GET',
-                        dataType: 'json',
-                        success: function(response) {
-                            fieldGroups = response.fields || [];
-                            let existingData = {};
-
-                            let promises = fieldGroups.map(function(group) {
-                                return new Promise(function(resolve) {
-                                    $.ajax({
-                                        url: '/get-label-data/' + license.id + '/label_' + group.label_id,
-                                        type: 'GET',
-                                        dataType: 'json',
-                                        success: function(dataResponse) {
-                                            existingData['label_' + group.label_id] = dataResponse.rows || [{}];
-                                            resolve();
-                                        },
-                                        error: function() {
-                                            existingData['label_' + group.label_id] = [{}];
-                                            resolve();
-                                        }
-                                    });
-                                });
+                    let promises = fieldGroups.map(function(group) {
+                        return new Promise(function(resolve) {
+                            $.ajax({
+                                url: '/get-label-data/' + license.id + '/label_' + group.label_id,
+                                type: 'GET',
+                                dataType: 'json',
+                                success: function(dataResponse) {
+                                    existingData['label_' + group.label_id] = dataResponse.rows || [{}];
+                                    resolve();
+                                },
+                                error: function() {
+                                    existingData['label_' + group.label_id] = [{}];
+                                    resolve();
+                                }
                             });
+                        });
+                    });
 
-                            Promise.all(promises).then(function() {
-                                loadLicenseFields('view_mapped_fields', fieldGroups, existingData, 'view');
-                                $('#view_mapped_fields').find('input, select').prop('disabled', true);
-                            });
-                        },
-                        error: function() {
-                            $('#view_mapped_fields').html('');
-                            fieldGroups = [];
-                        }
+                    Promise.all(promises).then(function() {
+                        loadLicenseFields('view_mapped_fields', fieldGroups, existingData, 'view');
+                        $('#view_mapped_fields').find('input, select').prop('disabled', true);
                     });
                 },
                 error: function() {
-                    alert('Failed to load license details.');
+                    $('#view_mapped_fields').html('');
+                    fieldGroups = [];
                 }
             });
-        });
-
+        },
+        error: function() {
+            alert('Failed to load license details.');
+        }
+    });
+});
+        
         // Edit License
+        // $(document).on('click', '.editLicenseBtn', function() {
+        //     let licenseId = $(this).data('id');
+        //     $('#edit_license_id').val(licenseId);
+        //     $.ajax({
+        //         url: '/get-license-details/' + licenseId,
+        //         type: 'GET',
+        //         dataType: 'json',
+        //         success: function(response) {
+        //             let license = response.license;
+        //             if (!license) {
+        //                 alert('No license data found.');
+        //                 return;
+        //             }
+        //             let licenseName = 'N/A';
+        //             if (license.license_name_id) {
+        //                 // Wait for populateLicenseNames to populate the select, then get the name
+        //                 populateLicenseNames(license.license_type_id, 'edit_license_name_id', function() {
+        //                     let licenseNameOption = $(`#edit_license_name_id option[value="${license.license_name_id}"]`).text();
+        //                     licenseName = licenseNameOption || license.license_name || 'N/A';
+        //                     $('#editLicenseName').text(licenseName);
+        //                 });
+        //             } else if (license.licenseName && license.licenseName.license_name) {
+        //                 licenseName = license.licenseName.license_name;
+        //                 $('#editLicenseName').text(licenseName);
+        //             } else {
+        //                 $('#editLicenseName').text(licenseName);
+        //             }                                                
+        //             $('#edit_company_id').val(license.company_id || '');
+        //             let companyName = license.company?.company_name || '';
+        //             populateGroupCompanies(license.company_id, 'edit_groupcom_id', null, license.groupcom_id || null, companyName);
+        //             $('#edit_license_type_id').val(license.license_type_id || '');
+        //             populateLicenseNames(license.license_type_id, 'edit_license_name_id', function() {
+        //                 $('#edit_license_name_id').val(license.license_name_id || '');
+        //             });
+        //             $('#edit_state_id').val(license.state_id || '');
+        //             populateDistricts(license.state_id, 'edit_district_id', 'edit_city_village_id', 'edit_pincode', license.district_id, function() {
+        //                 populateCityVillages(license.district_id, 'edit_city_village_id', 'edit_pincode', license.city_village_id);
+        //             });
+        //             $('#edit_pincode').val(license.pincode || '');
+        //             $('#edit_responsible_person').val(license.responsible_person || '');
+        //             if (license.responsible_person) {
+        //                     $.ajax({
+        //                         url: '/get-employee-details/' + license.responsible_person,
+        //                         type: 'GET',
+        //                         dataType: 'json',
+        //                         success: function(empResponse) {
+        //                             $('#edit_responsible_person_name').val(empResponse.emp_name || '');
+        //                         },
+        //                         error: function() {
+        //                             $('#edit_responsible_person_name').val('');
+        //                         }
+        //                     });
+        //                 } else {
+        //                     $('#edit_responsible_person_name').val('');
+        //             }
+        //             $('#edit_responsible_person_name').val(license.responsible_person || '');
+        //             $('#edit_res_email').val(license.res_email || '');
+        //             $('#edit_res_contact').val(license.res_contact || '');
+        //             $('#edit_res_department').val(license.res_department || '');
+        //             $('#edit_res_designation').val(license.res_designation || '');
+        //             $('#edit_application_number').val(license.application_number || '');
+        //             $('#edit_letter_date').val(license.letter_date || '');
+        //             $('#edit_date_of_issue').val(license.date_of_issue || '');
+        //             $('#edit_registration_number').val(license.registration_number || '');
+        //             $('#edit_certificate_number').val(license.certificate_number || '');
+        //             $('#edit_valid_upto').val(license.valid_upto || '');
+        //             $('#edit_lis_status').val(license.lis_status || '');
+        //             $('#edit_surrendered_remark').val(license.surrendered_remark || '');
+        //             $('#edit_revoked_remark').val(license.revoked_remark || '');                   
+        //             if (license.lis_status === 'Surrendered') {
+        //                 $('#edit_surrendered_remark_section').show();
+        //                 $('#edit_surrendered_remark').prop('required', true);
+        //                 $('#edit_revoked_remark_section').hide();
+        //                 $('#edit_revoked_remark').prop('required', false).val('');
+        //             } else if (license.lis_status === 'Revoked') {
+        //                 $('#edit_revoked_remark_section').show();
+        //                 $('#edit_revoked_remark').prop('required', true);
+        //                 $('#edit_surrendered_remark_section').hide();
+        //                 $('#edit_surrendered_remark').prop('required', false).val('');
+        //             } else {
+        //                 $('#edit_surrendered_remark_section').hide();
+        //                 $('#edit_surrendered_remark').prop('required', false).val('');
+        //                 $('#edit_revoked_remark_section').hide();
+        //                 $('#edit_revoked_remark').prop('required', false).val('');
+        //             }
+        //             $('#edit_application_status').val(license.application_status || '');
+        //             $('#edit_withdrawn_remark').val(license.withdrawn_remark || '');
+        //             $('#edit_rejected_remark').val(license.rejected_remark || '');
+
+        //             if (license.application_status === 'Withdrawn') {
+        //                 $('#edit_withdrawn_remark_section').show();
+        //                 $('#edit_withdrawn_remark').prop('required', true);
+        //                 $('#edit_rejected_remark_section').hide();
+        //                 $('#edit_rejected_remark').prop('required', false).val('');
+        //             } else if (license.application_status === 'Rejected') {
+        //                 $('#edit_rejected_remark_section').show();
+        //                 $('#edit_rejected_remark').prop('required', true);
+        //                 $('#edit_withdrawn_remark_section').hide();
+        //                 $('#edit_withdrawn_remark').prop('required', false).val('');
+        //             } else {
+        //                 $('#edit_withdrawn_remark_section').hide();
+        //                 $('#edit_withdrawn_remark').prop('required', false).val('');
+        //                 $('#edit_rejected_remark_section').hide();
+        //                 $('#edit_rejected_remark').prop('required', false).val('');
+        //             }
+        //             $('#edit_reminder_option').val(license.reminder_option || 'N');
+
+        //             let licenseCreation = license.license_performance || 'new';
+        //             $(`#edit_license_creation_${licenseCreation}`).prop('checked', true);
+        //             $('#edit_license_performance').val(licenseCreation);
+        //             if (licenseCreation === 'modification') {
+        //                 $('#edit_license_creation_remark_section').show();
+        //                 $('#edit_license_creation_remark').prop('required', true).val(license.license_creation_remark || '');
+        //             } else {
+        //                 $('#edit_license_creation_remark_section').hide();
+        //                 $('#edit_license_creation_remark').prop('required', false).val('');
+        //             }
+
+        //             if (license.reminder_option === 'Y' && license.reminder_emails) {
+        //                 $('#edit_reminder-email-section').show();
+        //                 $('#edit_reminder-email-list').html('');
+        //                 let emails = license.reminder_emails.split(',');
+        //                 emails.forEach(function(email, index) {
+        //                     let emailInput = `
+        //                         <div class="input-group mb-2">
+        //                             <input type="email" name="reminder_emails[]" class="form-control form-control-sm" value="${email.trim()}" placeholder="Enter email">
+        //                             <button type="button" class="btn btn-outline-${index === 0 ? 'secondary add-email' : 'danger remove-email'}">${index === 0 ? 'Add' : 'Remove'}</button>
+        //                         </div>`;
+        //                     $('#edit_reminder-email-list').append(emailInput);
+        //                 });
+        //             } else {
+        //                 $('#edit_reminder-email-section').hide();
+        //                 $('#edit_reminder-email-list').html(`
+        //                     <div class="input-group mb-2">
+        //                         <input type="email" name="reminder_emails[]" class="form-control form-control-sm" placeholder="Enter email">
+        //                         <button type="button" class="btn btn-outline-secondary add-email">Add</button>
+        //                     </div>`);
+        //             }
+
+        //             if (license.documents && license.documents.length > 0) {
+        //                 let documentList = $('#edit_application-document-list');
+        //                 documentList.html('');
+        //                 let finalDocumentList = $('#edit_final-document-list');
+        //                 finalDocumentList.html('');
+        //                 license.documents.forEach(function(doc, index) {
+        //                     if (doc.document_type === 'application') {
+        //                         let docRow = `
+        //                             <div class="document-row input-group mb-2">
+        //                                 <input type="text" name="document_name[]" class="form-control form-control-sm" value="${doc.document_name || ''}" placeholder="Enter document name">
+        //                                 <input type="file" name="application_document[]" class="form-control form-control-sm">
+        //                                 <span class="input-group-text bg-white border-0">
+        //                                     <i class="ri-add-circle-line text-muted fs-5 add-document" role="button" title="Add"></i>
+        //                                 </span>
+        //                                 <span class="input-group-text bg-white border-0" ${index === 0 ? 'style="display: none;"' : ''}>
+        //                                     <i class="ri-delete-bin-line text-danger fs-5 remove-document" role="button" title="Remove"></i>
+        //                                 </span>
+        //                                 <small class="form-text text-muted">Current file: <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'None'}</a></small>
+        //                             </div>`;
+        //                         documentList.append(docRow);
+        //                     } else if (doc.document_type === 'final') {
+        //                         let docRow = `
+        //                             <div class="document-row input-group mb-2">
+        //                                 <input type="text" name="final_document_name[]" class="form-control form-control-sm" value="${doc.document_name || ''}" placeholder="Enter final document name">
+        //                                 <input type="file" name="final_document[]" class="form-control form-control-sm">
+        //                                 <span class="input-group-text bg-white border-0">
+        //                                     <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+        //                                 </span>
+        //                                 <span class="input-group-text bg-white border-0" ${index === 0 ? 'style="display: none;"' : ''}>
+        //                                     <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+        //                                 </span>
+        //                                 <small class="form-text text-muted">Current file: <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'None'}</a></small>
+        //                             </div>`;
+        //                         finalDocumentList.append(docRow);
+        //                     }
+        //                 });
+        //             }
+
+        //             $.ajax({
+        //                 url: '/license-mapped-fields/' + license.license_name_id,
+        //                 type: 'GET',
+        //                 dataType: 'json',
+        //                 success: function(response) {
+        //                     fieldGroups = response.fields || [];
+        //                     let existingData = {};
+
+        //                     let promises = fieldGroups.map(function(group) {
+        //                         return new Promise(function(resolve) {
+        //                             $.ajax({
+        //                                 url: '/get-label-data/' + license.id + '/label_' + group.label_id,
+        //                                 type: 'GET',
+        //                                 dataType: 'json',
+        //                                 success: function(dataResponse) {
+        //                                     existingData['label_' + group.label_id] = dataResponse.rows || [{}];
+        //                                     resolve();
+        //                                 },
+        //                                 error: function() {
+        //                                     existingData['label_' + group.label_id] = [{}];
+        //                                     resolve();
+        //                                 }
+        //                             });
+        //                         });
+        //                     });
+
+        //                     Promise.all(promises).then(function() {
+        //                         loadLicenseFields('edit_mapped_fields', fieldGroups, existingData, 'edit');
+        //                     });
+        //                 },
+        //                 error: function() {
+        //                     $('#edit_mapped_fields').html('<p>Failed to load dynamic fields.</p>');
+        //                     fieldGroups = [];
+        //                     alert('Failed to load dynamic fields.');
+        //                 }
+        //             });
+        //         },
+        //         error: function() {
+        //             alert('Failed to load license details.');
+        //         }
+        //     });
+        // });
+
         $(document).on('click', '.editLicenseBtn', function() {
             let licenseId = $(this).data('id');
             $('#edit_license_id').val(licenseId);
@@ -1961,9 +3007,22 @@
                         alert('No license data found.');
                         return;
                     }
-
+                    let licenseName = 'N/A';
+                    if (license.license_name_id) {
+                        populateLicenseNames(license.license_type_id, 'edit_license_name_id', function() {
+                            let licenseNameOption = $(`#edit_license_name_id option[value="${license.license_name_id}"]`).text();
+                            licenseName = licenseNameOption || license.license_name || 'N/A';
+                            $('#editLicenseName').text(licenseName);
+                        });
+                    } else if (license.licenseName && license.licenseName.license_name) {
+                        licenseName = license.licenseName.license_name;
+                        $('#editLicenseName').text(licenseName);
+                    } else {
+                        $('#editLicenseName').text(licenseName);
+                    }                                                
                     $('#edit_company_id').val(license.company_id || '');
-                    populateGroupCompanies(license.company_id, 'edit_groupcom_id', null, license.groupcom_id || '');
+                    let companyName = license.company?.company_name || '';
+                    populateGroupCompanies(license.company_id, 'edit_groupcom_id', null, license.groupcom_id || null, companyName);
                     $('#edit_license_type_id').val(license.license_type_id || '');
                     populateLicenseNames(license.license_type_id, 'edit_license_name_id', function() {
                         $('#edit_license_name_id').val(license.license_name_id || '');
@@ -1973,12 +3032,19 @@
                         populateCityVillages(license.district_id, 'edit_city_village_id', 'edit_pincode', license.city_village_id);
                     });
                     $('#edit_pincode').val(license.pincode || '');
-                    $('#edit_responsible_person').val(license.responsible_person || '');
-                    $('#edit_responsible_person_name').val(license.responsible_person || '');
-                    $('#edit_res_email').val(license.res_email || '');
-                    $('#edit_res_contact').val(license.res_contact || '');
-                    $('#edit_res_department').val(license.res_department || '');
-                    $('#edit_res_designation').val(license.res_designation || '');
+                    
+                    // Populate responsible person details
+                    if (license.license_type_id && license.license_name_id) {
+                        populateResponsibleDetails(license.license_type_id, license.license_name_id, 'edit_');
+                    } else {
+                        $('#edit_responsible_person').val('');
+                        $('#edit_responsible_person_name').val('');
+                        $('#edit_res_email').val('');
+                        $('#edit_res_contact').val('');
+                        $('#edit_res_department').val('');
+                        $('#edit_res_designation').val('');
+                    }
+
                     $('#edit_application_number').val(license.application_number || '');
                     $('#edit_letter_date').val(license.letter_date || '');
                     $('#edit_date_of_issue').val(license.date_of_issue || '');
@@ -1986,6 +3052,44 @@
                     $('#edit_certificate_number').val(license.certificate_number || '');
                     $('#edit_valid_upto').val(license.valid_upto || '');
                     $('#edit_lis_status').val(license.lis_status || '');
+                    $('#edit_surrendered_remark').val(license.surrendered_remark || '');
+                    $('#edit_revoked_remark').val(license.revoked_remark || '');                   
+                    if (license.lis_status === 'Surrendered') {
+                        $('#edit_surrendered_remark_section').show();
+                        $('#edit_surrendered_remark').prop('required', true);
+                        $('#edit_revoked_remark_section').hide();
+                        $('#edit_revoked_remark').prop('required', false).val('');
+                    } else if (license.lis_status === 'Revoked') {
+                        $('#edit_revoked_remark_section').show();
+                        $('#edit_revoked_remark').prop('required', true);
+                        $('#edit_surrendered_remark_section').hide();
+                        $('#edit_surrendered_remark').prop('required', false).val('');
+                    } else {
+                        $('#edit_surrendered_remark_section').hide();
+                        $('#edit_surrendered_remark').prop('required', false).val('');
+                        $('#edit_revoked_remark_section').hide();
+                        $('#edit_revoked_remark').prop('required', false).val('');
+                    }
+                    $('#edit_application_status').val(license.application_status || '');
+                    $('#edit_withdrawn_remark').val(license.withdrawn_remark || '');
+                    $('#edit_rejected_remark').val(license.rejected_remark || '');
+
+                    if (license.application_status === 'Withdrawn') {
+                        $('#edit_withdrawn_remark_section').show();
+                        $('#edit_withdrawn_remark').prop('required', true);
+                        $('#edit_rejected_remark_section').hide();
+                        $('#edit_rejected_remark').prop('required', false).val('');
+                    } else if (license.application_status === 'Rejected') {
+                        $('#edit_rejected_remark_section').show();
+                        $('#edit_rejected_remark').prop('required', true);
+                        $('#edit_withdrawn_remark_section').hide();
+                        $('#edit_withdrawn_remark').prop('required', false).val('');
+                    } else {
+                        $('#edit_withdrawn_remark_section').hide();
+                        $('#edit_withdrawn_remark').prop('required', false).val('');
+                        $('#edit_rejected_remark_section').hide();
+                        $('#edit_rejected_remark').prop('required', false).val('');
+                    }
                     $('#edit_reminder_option').val(license.reminder_option || 'N');
 
                     let licenseCreation = license.license_performance || 'new';
@@ -1998,7 +3102,6 @@
                         $('#edit_license_creation_remark_section').hide();
                         $('#edit_license_creation_remark').prop('required', false).val('');
                     }
-
                     if (license.reminder_option === 'Y' && license.reminder_emails) {
                         $('#edit_reminder-email-section').show();
                         $('#edit_reminder-email-list').html('');
@@ -2023,20 +3126,38 @@
                     if (license.documents && license.documents.length > 0) {
                         let documentList = $('#edit_application-document-list');
                         documentList.html('');
+                        let finalDocumentList = $('#edit_final-document-list');
+                        finalDocumentList.html('');
                         license.documents.forEach(function(doc, index) {
-                            let docRow = `
-                                <div class="document-row input-group mb-2">
-                                    <input type="text" name="document_name[]" class="form-control form-control-sm" value="${doc.document_name || ''}" placeholder="Enter document name">
-                                    <input type="file" name="application_document[]" class="form-control form-control-sm">
-                                    <span class="input-group-text bg-white border-0">
-                                        <i class="ri-add-circle-line text-muted fs-5 add-document" role="button" title="Add"></i>
-                                    </span>
-                                    <span class="input-group-text bg-white border-0" ${index === 0 ? 'style="display: none;"' : ''}>
-                                        <i class="ri-delete-bin-line text-danger fs-5 remove-document" role="button" title="Remove"></i>
-                                    </span>
-                                    <small class="form-text text-muted">Current file: <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'None'}</a></small>
-                                </div>`;
-                            documentList.append(docRow);
+                            if (doc.document_type === 'application') {
+                                let docRow = `
+                                    <div class="document-row input-group mb-2">
+                                        <input type="text" name="document_name[]" class="form-control form-control-sm" value="${doc.document_name || ''}" placeholder="Enter document name">
+                                        <input type="file" name="application_document[]" class="form-control form-control-sm">
+                                        <span class="input-group-text bg-white border-0">
+                                            <i class="ri-add-circle-line text-muted fs-5 add-document" role="button" title="Add"></i>
+                                        </span>
+                                        <span class="input-group-text bg-white border-0" ${index === 0 ? 'style="display: none;"' : ''}>
+                                            <i class="ri-delete-bin-line text-danger fs-5 remove-document" role="button" title="Remove"></i>
+                                        </span>
+                                        <small class="form-text text-muted">Current file: <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'None'}</a></small>
+                                    </div>`;
+                                documentList.append(docRow);
+                            } else if (doc.document_type === 'final') {
+                                let docRow = `
+                                    <div class="document-row input-group mb-2">
+                                        <input type="text" name="final_document_name[]" class="form-control form-control-sm" value="${doc.document_name || ''}" placeholder="Enter final document name">
+                                        <input type="file" name="final_document[]" class="form-control form-control-sm">
+                                        <span class="input-group-text bg-white border-0">
+                                            <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                                        </span>
+                                        <span class="input-group-text bg-white border-0" ${index === 0 ? 'style="display: none;"' : ''}>
+                                            <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                                        </span>
+                                        <small class="form-text text-muted">Current file: <a href="/storage/${doc.file_path}" target="_blank">${doc.file_name || 'None'}</a></small>
+                                    </div>`;
+                                finalDocumentList.append(docRow);
+                            }
                         });
                     }
 
@@ -2076,11 +3197,32 @@
                             alert('Failed to load dynamic fields.');
                         }
                     });
+                
                 },
                 error: function() {
                     alert('Failed to load license details.');
                 }
             });
+        });
+
+        $('#edit_lis_status').change(function() {
+            let status = $(this).val();
+            if (status === 'Surrendered') {
+                $('#edit_surrendered_remark_section').show();
+                $('#edit_surrendered_remark').prop('required', true);
+                $('#edit_revoked_remark_section').hide();
+                $('#edit_revoked_remark').prop('required', false).val('');
+            } else if (status === 'Revoked') {
+                $('#edit_revoked_remark_section').show();
+                $('#edit_revoked_remark').prop('required', true);
+                $('#edit_surrendered_remark_section').hide();
+                $('#edit_surrendered_remark').prop('required', false).val('');
+            } else {
+                $('#edit_surrendered_remark_section').hide();
+                $('#edit_surrendered_remark').prop('required', false).val('');
+                $('#edit_revoked_remark_section').hide();
+                $('#edit_revoked_remark').prop('required', false).val('');
+            }
         });
 
         // Renew License
@@ -2093,8 +3235,19 @@
                 dataType: 'json',
                 success: function(response) {
                     let license = response.license;
+                    if (license.license_name_id) {
+                        populateLicenseNames(license.license_type_id, 'renew_license_name_id', function() {
+                            let licenseNameOption = $(`#renew_license_name_id option[value="${license.license_name_id}"]`).text();
+                            $('#renewLicenseName').text(licenseNameOption || license.license_name || 'N/A');
+                        });
+                    } else if (license.licenseName && license.licenseName.license_name) {
+                        $('#renewLicenseName').text(license.licenseName.license_name);
+                    } else {
+                        $('#renewLicenseName').text('N/A');
+                    }
                     $('#renew_company_id').val(license.company_id || '');
-                    populateGroupCompanies(license.company_id, 'renew_groupcom_id', null, license.groupcom_id || '');
+                    let companyName = license.company?.company_name || '';
+                    populateGroupCompanies(license.company_id, 'renew_groupcom_id', null, license.groupcom_id || null, companyName);
                     $('#renew_license_type_id').val(license.license_type_id || '');
                     populateLicenseNames(license.license_type_id, 'renew_license_name_id', function() {
                         $('#renew_license_name_id').val(license.license_name_id || '');
@@ -2106,6 +3259,21 @@
                     $('#renew_pincode').val(license.pincode || '');
                     $('#renew_responsible_person').val(license.responsible_person || '');
                     $('#renew_responsible_person_name').val(license.responsible_person || '');
+                    if (license.responsible_person) {
+                        $.ajax({
+                            url: '/get-employee-details/' + license.responsible_person,
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(empResponse) {
+                                $('#renew_responsible_person_name').val(empResponse.emp_name || '');
+                            },
+                            error: function() {
+                                $('#renew_responsible_person_name').val('');
+                            }
+                        });
+                    } else {
+                        $('#renew_responsible_person_name').val('');
+                    }
                     $('#renew_res_email').val(license.res_email || '');
                     $('#renew_res_contact').val(license.res_contact || '');
                     $('#renew_res_department').val(license.res_department || '');
@@ -2114,6 +3282,47 @@
                     $('#renew_date_of_issue').val('');
                     $('#renew_valid_upto').val('');
                     $('#renew_lis_status').val('Active');
+                    $('#renew_application_status').val(license.application_status || '');
+                    $('#renew_withdrawn_remark').val(license.withdrawn_remark || '');
+                    $('#renew_rejected_remark').val(license.rejected_remark || '');
+                    $('#renew_surrendered_remark').val(license.surrendered_remark || '');
+                    $('#renew_revoked_remark').val(license.revoked_remark || '');
+
+                    if (license.application_status === 'Withdrawn') {
+                        $('#renew_withdrawn_remark_section').show();
+                        $('#renew_withdrawn_remark').prop('required', true);
+                        $('#renew_rejected_remark_section').hide();
+                        $('#renew_rejected_remark').prop('required', false).val('');
+                    } else if (license.application_status === 'Rejected') {
+                        $('#renew_rejected_remark_section').show();
+                        $('#renew_rejected_remark').prop('required', true);
+                        $('#renew_withdrawn_remark_section').hide();
+                        $('#renew_withdrawn_remark').prop('required', false).val('');
+                    } else {
+                        $('#renew_withdrawn_remark_section').hide();
+                        $('#renew_withdrawn_remark').prop('required', false).val('');
+                        $('#renew_rejected_remark_section').hide();
+                        $('#renew_rejected_remark').prop('required', false).val('');
+                    }
+
+                    // Handle license status visibility
+                    if (license.lis_status === 'Surrendered') {
+                        $('#renew_surrendered_remark_section').show();
+                        $('#renew_surrendered_remark').prop('required', true);
+                        $('#renew_revoked_remark_section').hide();
+                        $('#renew_revoked_remark').prop('required', false).val('');
+                    } else if (license.lis_status === 'Revoked') {
+                        $('#renew_revoked_remark_section').show();
+                        $('#renew_revoked_remark').prop('required', true);
+                        $('#renew_surrendered_remark_section').hide();
+                        $('#renew_surrendered_remark').prop('required', false).val('');
+                    } else {
+                        $('#renew_surrendered_remark_section').hide();
+                        $('#renew_surrendered_remark').prop('required', false).val('');
+                        $('#renew_revoked_remark_section').hide();
+                        $('#renew_revoked_remark').prop('required', false).val('');
+                    }
+
                     $('#renew_reminder_option').val(license.reminder_option || 'N');
                     if (license.reminder_option === 'Y' && license.reminder_emails) {
                         $('#renew_reminder-email-section').show();
@@ -2219,6 +3428,192 @@
                 $('#edit_license_creation_remark').prop('required', false).val('');
             }
         });
+
+        // Handle valid_upto date change for Add License Modal
+        $('#valid_upto').change(function() {
+            let validUptoDate = $(this).val();
+            let licenseStatusSelect = $('#lis_status');
+            let licenseStatusHidden = $('#lis_status_hidden');
+
+            if (validUptoDate) {
+                // Get current date dynamically
+                let currentDate = new Date();
+                let selectedDate = new Date(validUptoDate);
+
+                // Compare dates (ignoring time for simplicity)
+                currentDate.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+
+                if (selectedDate >= currentDate) {
+                    licenseStatusSelect.val('Active');
+                    licenseStatusHidden.val('Active');
+                } else {
+                    licenseStatusSelect.val('Deactive');
+                    licenseStatusHidden.val('Deactive');
+                }
+            } else {
+                licenseStatusSelect.val('');
+                licenseStatusHidden.val('');
+            }
+
+            // Make lis_status readonly to prevent manual changes
+            licenseStatusSelect.prop('disabled', true);
+        });
+
+        $('.alert').each(function() {
+            let alert = this;
+            setTimeout(function() {
+                let bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 1000);
+        });
+    });
+
+    $(document).ready(function() {
+        updateFinalDocumentButtonStates();
+
+        $('#editLicenseModal').on('shown.bs.modal', function() {
+            updateEditFinalDocumentButtonStates();
+        });
+
+        // Add final document row for Add License Modal
+        $(document).off('click', '.add-final-document').on('click', '.add-final-document', function() {
+            let documentList = $('#final-document-list');
+            let newRow = `
+                <div class="document-row input-group mb-2">
+                    <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                    <input type="file" name="final_document[]" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                    </span>
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                    </span>
+                </div>`;
+            $(this).closest('.document-row').after(newRow);
+            updateFinalDocumentButtonStates();
+            console.log('Added final document row in Add License Modal. Total rows:', $('#final-document-list .document-row').length);
+        });
+
+        // Remove final document row for Add License Modal
+        $(document).off('click', '.remove-final-document').on('click', '.remove-final-document', function() {
+            if ($('#final-document-list .document-row').length > 1) {
+                $(this).closest('.document-row').remove();
+                updateFinalDocumentButtonStates();
+                console.log('Removed final document row in Add License Modal. Total rows:', $('#final-document-list .document-row').length);
+            }
+        });
+
+        // Update button states for final document rows in Add License Modal
+        function updateFinalDocumentButtonStates() {
+            let rows = $('#final-document-list .document-row');
+            rows.each(function(index) {
+                let addButton = $(this).find('.add-final-document');
+                let removeButton = $(this).find('.remove-final-document');
+                if (index === rows.length - 1) {
+                    addButton.parent().show();
+                    removeButton.parent().show();
+                } else {
+                    addButton.parent().hide();
+                    removeButton.parent().show();
+                }
+            });
+            console.log('Updated button states for Add License Modal. Total rows:', rows.length);
+        }
+
+        // Add final document row for Edit License Modal
+        $(document).off('click', '.add-final-document', '#edit_final-document-list .add-final-document').on('click', '#edit_final-document-list .add-final-document', function() {
+            let documentList = $('#edit_final-document-list');
+            let newRow = `
+                <div class="document-row input-group mb-2">
+                    <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                    <input type="file" name="final_document[]" class="form-control form-control-sm">
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                    </span>
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                    </span>
+                </div>`;
+            $(this).closest('.document-row').after(newRow);
+            updateEditFinalDocumentButtonStates();
+            console.log('Added final document row in Edit License Modal. Total rows:', $('#edit_final-document-list .document-row').length);
+        });
+
+        // Remove final document row for Edit License Modal
+        $(document).off('click', '.remove-final-document', '#edit_final-document-list .remove-final-document').on('click', '#edit_final-document-list .remove-final-document', function() {
+            if ($('#edit_final-document-list .document-row').length > 1) {
+                $(this).closest('.document-row').remove();
+                updateEditFinalDocumentButtonStates();
+                console.log('Removed final document row in Edit License Modal. Total rows:', $('#edit_final-document-list .document-row').length);
+            }
+        });
+
+        // Update button states for final document rows in Edit License Modal
+        function updateEditFinalDocumentButtonStates() {
+            let rows = $('#edit_final-document-list .document-row');
+            rows.each(function(index) {
+                let addButton = $(this).find('.add-final-document');
+                let removeButton = $(this).find('.remove-final-document');
+                if (index === rows.length - 1) {
+                    addButton.parent().show();
+                    removeButton.parent().show();
+                } else {
+                    addButton.parent().hide();
+                    removeButton.parent().show();
+                }
+            });
+            console.log('Updated button states for Edit License Modal. Total rows:', rows.length);
+        }
+
+        $('#renewLicenseModal').on('shown.bs.modal', function() {
+            updateRenewFinalDocumentButtonStates();
+        });
+
+        // Add final document row for Renew License Modal
+        $(document).off('click', '.add-final-document', '#renew_final-document-list .add-final-document').on('click', '#renew_final-document-list .add-final-document', function() {
+            let documentList = $('#renew_final-document-list');
+            let newRow = `
+                <div class="document-row input-group mb-2">
+                    <input type="text" name="final_document_name[]" class="form-control form-control-sm" placeholder="Enter final document name">
+                    <input type="file" name="final_document[]" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-add-circle-line text-muted fs-5 add-final-document" role="button" title="Add"></i>
+                    </span>
+                    <span class="input-group-text bg-white border-0">
+                        <i class="ri-delete-bin-line text-danger fs-5 remove-final-document" role="button" title="Remove"></i>
+                    </span>
+                </div>`;
+            $(this).closest('.document-row').after(newRow);
+            updateRenewFinalDocumentButtonStates();
+            console.log('Added final document row in Renew License Modal. Total rows:', $('#renew_final-document-list .document-row').length);
+        });
+
+        // Remove final document row for Renew License Modal
+        $(document).off('click', '.remove-final-document', '#renew_final-document-list .remove-final-document').on('click', '#renew_final-document-list .remove-final-document', function() {
+            if ($('#renew_final-document-list .document-row').length > 1) {
+                $(this).closest('.document-row').remove();
+                updateRenewFinalDocumentButtonStates();
+                console.log('Removed final document row in Renew License Modal. Total rows:', $('#renew_final-document-list .document-row').length);
+            }
+        });
+
+        // Update button states for final document rows in Renew License Modal
+        function updateRenewFinalDocumentButtonStates() {
+            let rows = $('#renew_final-document-list .document-row');
+            rows.each(function(index) {
+                let addButton = $(this).find('.add-final-document');
+                let removeButton = $(this).find('.remove-final-document');
+                if (index === rows.length - 1) {
+                    addButton.parent().show();
+                    removeButton.parent().show();
+                } else {
+                    addButton.parent().hide();
+                    removeButton.parent().show();
+                }
+            });
+            console.log('Updated button states for Renew License Modal. Total rows:', rows.length);
+        }
     });
 </script>
 @endpush

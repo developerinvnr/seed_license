@@ -19,4 +19,9 @@ class CoreVariety extends Model
     {
         return $this->belongsTo(CoreCrop::class, 'crop_id', 'id');
     }
+
+    public function category()
+    {
+        return $this->belongsTo(CoreCategory::class, 'category_id', 'id');
+    }
 }

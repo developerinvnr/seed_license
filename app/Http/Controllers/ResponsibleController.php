@@ -59,11 +59,32 @@ class ResponsibleController extends Controller
         return response()->json($licenseTypes);
     }
 
+    // public function getLicenseNames($licenseTypeId)
+    // {
+    //     $licenseNames = LicenseName::where('license_type_id', $licenseTypeId)
+    //         ->select('id', 'license_name')
+    //         ->get();
+    //     return response()->json(['license_names' => $licenseNames]);
+    // }
+
     public function getLicenseNames($licenseTypeId)
     {
+        $responsibleId = request()->query('responsible_id', null);
+
+        $activeLicenseIds = ResponsibleMastersLicenseDetails::whereHas('responsibleMaster', function ($query) {
+                $query->where('Authorization_status', 'Active');
+            })
+            ->when($responsibleId, function ($query) use ($responsibleId) {
+                $query->where('responsible_master_id', '!=', $responsibleId);
+            })
+            ->pluck('license_name_id')
+            ->unique();
+
         $licenseNames = LicenseName::where('license_type_id', $licenseTypeId)
+            ->whereNotIn('id', $activeLicenseIds)
             ->select('id', 'license_name')
             ->get();
+
         return response()->json(['license_names' => $licenseNames]);
     }
 
@@ -138,6 +159,22 @@ class ResponsibleController extends Controller
 
         try {
             DB::beginTransaction();
+
+            $licensesPurposeId = PurposeDetail::where('name', 'Licenses')->first()->id ?? null;
+            if (in_array($licensesPurposeId, $validated['Authorised_Purpose']) && !empty($validated['license_name'])) {
+                $activeLicenseNames = ResponsibleMastersLicenseDetails::whereIn('license_name_id', $validated['license_name'])
+                    ->whereHas('responsibleMaster', function ($query) {
+                        $query->where('Authorization_status', 'Active');
+                    })
+                    ->pluck('license_name_id')
+                    ->toArray();
+
+                if (!empty($activeLicenseNames)) {
+                    $licenseNames = LicenseName::whereIn('id', $activeLicenseNames)->pluck('license_name')->toArray();
+                    throw new \Exception('The following license names are already assigned to active persons: ' . implode(', ', $licenseNames));
+                }
+            }
+
             $prefixMap = [
                 'BOR' => 'BOR',
                 'AUTHC' => 'AUTHC',
@@ -199,6 +236,7 @@ class ResponsibleController extends Controller
                             'responsible_master_id' => $responsible->id,
                             'license_type_id' => $licenseTypeId,
                             'license_name_id' => $validated['license_name'][$i],
+                            'history_status' => $authorizationStatus,
                         ]);
                     }
                 }
@@ -340,6 +378,7 @@ class ResponsibleController extends Controller
                             'responsible_master_id' => $responsible->id,
                             'license_type_id' => $licenseTypeId,
                             'license_name_id' => $validated['license_name'][$i],
+                            'history_status' => $authorizationStatus,
                         ]);
                     }
                 }

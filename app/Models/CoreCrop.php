@@ -19,4 +19,9 @@ class CoreCrop extends Model
     {
         return $this->belongsTo(CoreVertical::class, 'vertical_id', 'id');
     }
+
+    public function varieties()
+    {
+        return $this->hasMany(CoreVariety::class, 'crop_id', 'id');
+    }
 }

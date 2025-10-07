@@ -1,6 +1,6 @@
 <x-theme.header />
 <div id="layout-wrapper">
-    <x-theme.topnavbar />
+    <x-theme.topNavbar />
     <x-theme.sidebar />
     <div class="vertical-overlay"></div>
     <div class="main-content">

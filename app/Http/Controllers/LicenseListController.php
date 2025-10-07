@@ -24,25 +24,25 @@ use Yajra\DataTables\DataTables;
 
 class LicenseListController extends Controller
 {
-    // public function index()
-    // {
-    //     $licenses = License::with(['licenseType', 'licenseName', 'company', 'groupcom', 'state', 'district', 'cityVillage'])
-    //         ->where('lis_status', 'Active')
-    //         ->latest()
-    //         ->get();
-    //     $licenseTypes = LicenseType::all();
-    //     $responsibles = ResponsibleMaster::all();
-    //     $states = CoreState::where('country_id', 1)->get();
-    //     $companies = CoreCompany::all();
-    //     return view('license.license_list', compact('licenses', 'licenseTypes', 'responsibles', 'states', 'companies'));
-    // }
-
+   
     public function index(Request $request)
     {
         $query = License::with(['licenseType', 'licenseName', 'company', 'groupcom', 'state', 'district', 'cityVillage'])
-            ->where('lis_status', 'Active')
             ->latest();
 
+        // Apply filter_id if provided
+        if ($request->has('filter_id') && $request->filter_id) {
+            $query->where('id', $request->filter_id);
+        }
+
+        // Apply status filter
+        if ($request->has('status_filter') && in_array($request->status_filter, ['Active', 'Deactive', 'Surrendered', 'Revoked'])) {
+            $query->where('lis_status', $request->status_filter);
+        } else {
+            $query->whereIn('lis_status', ['Active', 'Surrendered', 'Revoked']);
+        }
+
+        // Apply company filter
         if ($request->has('company_id') && $request->company_id) {
             $query->where('company_id', $request->company_id);
         }
@@ -52,7 +52,15 @@ class LicenseListController extends Controller
         $responsibles = ResponsibleMaster::all();
         $states = CoreState::where('country_id', 1)->get();
         $companies = CoreCompany::all();
-        return view('license.license_list', compact('licenses', 'licenseTypes', 'responsibles', 'states', 'companies'));
+
+        $employees = DB::table('core_employee')
+            ->join('licenses', 'core_employee.id', '=', 'licenses.responsible_person')
+            ->select('core_employee.id', 'core_employee.emp_name')
+            ->distinct()
+            ->get();
+
+
+        return view('license.license_list', compact('licenses', 'licenseTypes', 'responsibles', 'states', 'companies', 'employees'));
     }
 
     public function getGroupCompanies(Request $request)
@@ -149,12 +157,20 @@ class LicenseListController extends Controller
                     'input_type' => $field->input_type,
                     'options' => [],
                 ];
+                
                 if ($field->input_type === 'select' && $field->table_name && $field->column_name) {
-                    $options = DB::table($field->table_name)->pluck($field->column_name)->toArray();
-                    $entry['options'] = array_map(function ($opt) {
-                        return ['label' => $opt, 'value' => $opt];
-                    }, $options);
-                }
+                $options = DB::table($field->table_name)
+                    ->select('id', $field->column_name . ' as name')
+                    ->get()
+                    ->map(function ($option) {
+                        return [
+                            'label' => $option->name,
+                            'value' => (string) $option->id, 
+                        ];
+                    })
+                    ->toArray();
+                $entry['options'] = $options;
+            }
                 $fields[] = $entry;
             }
             $fieldsGrouped[] = [
@@ -180,6 +196,11 @@ class LicenseListController extends Controller
                 'name' => $license->company->company_name
             ];
         }
+
+        $licenseData['surrendered_remark'] = $license->surrendered_remark;
+        $licenseData['revoked_remark'] = $license->revoked_remark;
+        $licenseData['withdrawn_remark'] = $license->withdrawn_remark;
+        $licenseData['rejected_remark'] = $license->rejected_remark;
 
         return response()->json(['license' => $licenseData]);
     }
@@ -221,6 +242,25 @@ class LicenseListController extends Controller
         ], 200);
     }
 
+    public function getEmployeeDetails($emp_id)
+    {
+        try {
+            $employee = DB::table('core_employee')
+                ->where('id', $emp_id) 
+                ->select('emp_name')
+                ->first();
+
+            if (!$employee) {
+                return response()->json(['emp_name' => ''], 404);
+            }
+
+            return response()->json(['emp_name' => $employee->emp_name], 200);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching employee details: ' . $e->getMessage());
+            return response()->json(['emp_name' => ''], 500);
+        }
+    }
+
     public function checkLicenseNameResponsible($licenseNameId)
     {
         $exists = DB::table('responsible_masters_license_details')
@@ -246,11 +286,11 @@ class LicenseListController extends Controller
             'res_contact' => 'required|string',
             'res_department' => 'required|string',
             'res_designation' => 'required|string',
-            'application_number' => 'required|string|max:255',
+            'application_number' => 'nullable|string|max:255',
             'letter_date' => 'required|date',
             'date_of_issue' => 'required|date',
-            'registration_number' => 'required|string|max:255',
-            'certificate_number' => 'required|string|max:255',
+            'registration_number' => 'nullable|string|max:255',
+            'certificate_number' => 'nullable|string|max:255',
             'valid_upto' => 'required|date',
             'reminder_option' => 'required|in:Y,N',
             'reminder_emails' => 'required_if:reminder_option,Y|array',
@@ -258,14 +298,20 @@ class LicenseListController extends Controller
             'lis_status' => 'required|in:Active,Deactive',
             'license_creation' => 'required|in:new,modification',
             'license_creation_remark' => 'required_if:license_creation,modification|string|nullable',
+            'surrendered_remark' => 'required_if:lis_status,Surrendered|string|nullable',
+            'revoked_remark' => 'required_if:lis_status,Revoked|string|nullable',
+            'withdrawn_remark' => 'required_if:application_status,Withdrawn|string|nullable',
+            'rejected_remark' => 'required_if:application_status,Rejected|string|nullable',
             'application_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document_name.*' => 'nullable|string|max:255',
             'application_status' => 'required|in:Submitted,Under review,Approved,Withdrawn,Rejected',
         ]);
         
 
-        if ($validator->fails()) { 
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
+        // if ($validator->fails()) { 
+        //     return redirect()->back()->withErrors($validator)->withInput();
+        // }
         
         $existingLicense = License::where('license_type_id', $request->license_type_id)
             ->where('license_name_id', $request->license_name_id)
@@ -302,11 +348,17 @@ class LicenseListController extends Controller
             'lis_status' => $request->lis_status,
             'license_performance' => $request->license_creation,
             'license_creation_remark' => $request->license_creation_remark,
+            'surrendered_remark' => $request->surrendered_remark,
+            'revoked_remark' => $request->revoked_remark,
+            'withdrawn_remark' => $request->application_status === 'Withdrawn' ? $request->withdrawn_remark : null,
+            'rejected_remark' => $request->application_status === 'Rejected' ? $request->rejected_remark : null,
             'application_status' => $request->application_status,
         ];
 
         if ($request->reminder_option === 'Y' && $request->filled('reminder_emails')) {
             $licenseData['reminder_emails'] = implode(',', array_map('trim', $request->reminder_emails));
+        }else {
+            $licenseData['reminder_emails'] = null;
         }
 
         // if ($validator->fails()) {
@@ -319,19 +371,38 @@ class LicenseListController extends Controller
 
         $license = License::create($licenseData);
 
-        // Inside the store method, after $license = License::create($licenseData);
         if ($request->hasFile('application_document')) {
-            $documents = $request->file('application_document');
-            $documentNames = $request->input('document_name', []); 
+        $documents = $request->file('application_document');
+        $documentNames = $request->input('document_name', []);
             foreach ($documents as $index => $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $path = $file->storeAs('application_documents', $fileName, 'public');
-                $license->documents()->create([
-                    'document_type' => 'application',
-                    'file_path' => $path,
-                    'file_name' => $fileName,
-                    'document_name' => $documentNames[$index] ?? $fileName,
-                ]);
+                if ($file->isValid()) {
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('application_documents', $fileName, 'public');
+                    $license->documents()->create([
+                        'document_type' => 'application',
+                        'file_path' => $path,
+                        'file_name' => $fileName,
+                        'document_name' => $documentNames[$index] ?? $fileName,
+                    ]);
+                }
+            }
+        }
+
+        // Handle final_document uploads
+        if ($request->hasFile('final_document')) {
+            $documents = $request->file('final_document');
+            $documentNames = $request->input('final_document_name', []);
+            foreach ($documents as $index => $file) {
+                if ($file->isValid()) {
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('final_documents', $fileName, 'public');
+                    $license->documents()->create([
+                        'document_type' => 'final',
+                        'file_path' => $path,
+                        'file_name' => $fileName,
+                        'document_name' => $documentNames[$index] ?? $fileName,
+                    ]);
+                }
             }
         }
 
@@ -396,30 +467,31 @@ class LicenseListController extends Controller
             'res_contact' => 'required|string',
             'res_department' => 'required|string',
             'res_designation' => 'required|string',
-            'application_number' => 'required|string|max:255',
+            'application_number' => 'nullable|string|max:255',
             'letter_date' => 'required|date',
             'date_of_issue' => 'required|date',
-            'registration_number' => 'required|string|max:255',
-            'certificate_number' => 'required|string|max:255',
+            'registration_number' => 'nullable|string|max:255',
+            'certificate_number' => 'nullable|string|max:255',
             'valid_upto' => 'required|date',
             'reminder_option' => 'required|in:Y,N',
             'reminder_emails' => 'required_if:reminder_option,Y|array',
             'reminder_emails.*' => 'required|email',
-            'lis_status' => 'required|in:Active,Deactive',
+            'lis_status' => 'required|in:Active,Deactive,Surrendered,Revoked', 
+            'license_creation' => 'required|in:new,modification',
+            'license_creation_remark' => 'required_if:license_creation,modification|string|nullable',
+            'surrendered_remark' => 'required_if:lis_status,Surrendered|string|nullable',
+            'revoked_remark' => 'required_if:lis_status,Revoked|string|nullable',
+            'withdrawn_remark' => 'required_if:application_status,Withdrawn|string|nullable',
+            'rejected_remark' => 'required_if:application_status,Rejected|string|nullable',
             'application_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document_name.*' => 'nullable|string|max:255',
             'application_status' => 'required|in:Submitted,Under review,Approved,Withdrawn,Rejected',
-
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'errors' => $validator->errors()
-        //     ], 422);
-        // }
 
         $license = License::findOrFail($request->license_id);
 
@@ -444,19 +516,19 @@ class LicenseListController extends Controller
             'certificate_number' => $request->certificate_number,
             'valid_upto' => $request->valid_upto,
             'reminder_option' => $request->reminder_option,
+            'reminder_emails' => $request->reminder_option === 'Y' && $request->filled('reminder_emails') ? implode(',', array_map('trim', $request->reminder_emails)) : null,
             'lis_status' => $request->lis_status,
+            'license_performance' => $request->license_creation,
+            'license_creation_remark' => $request->license_creation_remark,
+            'surrendered_remark' => $request->surrendered_remark,
+            'revoked_remark' => $request->revoked_remark,
+            'withdrawn_remark' => $request->application_status === 'Withdrawn' ? $request->withdrawn_remark : null,
+            'rejected_remark' => $request->application_status === 'Rejected' ? $request->rejected_remark : null,
             'application_status' => $request->application_status,
         ];
 
-        if ($request->reminder_option === 'Y' && $request->filled('reminder_emails')) {
-            $licenseData['reminder_emails'] = implode(',', array_map('trim', $request->reminder_emails));
-        } else {
-            $licenseData['reminder_emails'] = null;
-        }
-
         $license->update($licenseData);
 
-        // Inside the update method, after $license->update($licenseData);
         if ($request->hasFile('application_document')) {
             $documents = $request->file('application_document');
             $documentNames = $request->input('document_name', []);
@@ -469,6 +541,24 @@ class LicenseListController extends Controller
                     'file_name' => $fileName,
                     'document_name' => $documentNames[$index] ?? $fileName,
                 ]);
+            }
+        }
+
+        // Handle final_document uploads
+        if ($request->hasFile('final_document')) {
+            $documents = $request->file('final_document');
+            $documentNames = $request->input('final_document_name', []);
+            foreach ($documents as $index => $file) {
+                if ($file->isValid()) {
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('final_documents', $fileName, 'public');
+                    $license->documents()->create([
+                        'document_type' => 'final',
+                        'file_path' => $path,
+                        'file_name' => $fileName,
+                        'document_name' => $documentNames[$index] ?? $fileName,
+                    ]);
+                }
             }
         }
 
@@ -547,18 +637,24 @@ class LicenseListController extends Controller
             'res_contact' => 'required|string',
             'res_department' => 'required|string',
             'res_designation' => 'required|string',
-            'application_number' => 'required|string|max:255',
+            'application_number' => 'nullable|string|max:255',
             'letter_date' => 'required|date',
             'date_of_issue' => 'required|date',
-            'registration_number' => 'required|string|max:255',
-            'certificate_number' => 'required|string|max:255',
+            'registration_number' => 'nullable|string|max:255',
+            'certificate_number' => 'nullable|string|max:255',
             'valid_upto' => 'required|date',
             'reminder_option' => 'required|in:Y,N',
             'reminder_emails' => 'required_if:reminder_option,Y|array',
             'reminder_emails.*' => 'required|email',
-            'lis_status' => 'required|in:Active,Deactive',
+            'lis_status' => 'required|in:Active,Deactive,Surrendered,Revoked',
             'license_performance' => 'required|in:new,renewed',
+            'surrendered_remark' => 'required_if:lis_status,Surrendered|string|nullable',
+            'revoked_remark' => 'required_if:lis_status,Revoked|string|nullable',
+            'withdrawn_remark' => 'required_if:application_status,Withdrawn|string|nullable',
+            'rejected_remark' => 'required_if:application_status,Rejected|string|nullable',
             'application_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
+            'final_document_name.*' => 'nullable|string|max:255',
             'application_status' => 'required|in:Submitted,Under review,Approved,Withdrawn,Rejected',
         ]);  
 
@@ -599,6 +695,10 @@ class LicenseListController extends Controller
             'reminder_option' => $request->reminder_option,
             'lis_status' => $request->lis_status,
             'license_performance' => $request->license_performance,
+            'surrendered_remark' => $request->surrendered_remark,
+            'revoked_remark' => $request->revoked_remark,
+            'withdrawn_remark' => $request->application_status === 'Withdrawn' ? $request->withdrawn_remark : null,
+            'rejected_remark' => $request->application_status === 'Rejected' ? $request->rejected_remark : null,
             'application_status' => $request->application_status,
         ];  
 
@@ -623,6 +723,24 @@ class LicenseListController extends Controller
                     'file_name' => $fileName,
                     'document_name' => $documentNames[$index] ?? $fileName,
                 ]);
+            }
+        }
+
+        // Handle final_document uploads
+        if ($request->hasFile('final_document')) {
+            $documents = $request->file('final_document');
+            $documentNames = $request->input('final_document_name', []);
+            foreach ($documents as $index => $file) {
+                if ($file->isValid()) {
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('final_documents', $fileName, 'public');
+                    $newLicense->documents()->create([
+                        'document_type' => 'final',
+                        'file_path' => $path,
+                        'file_name' => $fileName,
+                        'document_name' => $documentNames[$index] ?? $fileName,
+                    ]);
+                }
             }
         }
 

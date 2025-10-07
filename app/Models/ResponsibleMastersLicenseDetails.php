@@ -16,6 +16,7 @@ class ResponsibleMastersLicenseDetails extends Model
         'responsible_master_id',
         'license_type_id',
         'license_name_id',
+        'history_status',
     ];
 
     public function responsibleMaster()

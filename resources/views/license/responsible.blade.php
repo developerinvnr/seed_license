@@ -800,7 +800,7 @@
             </div>
         </div>
 
-       <!-- Certificate Modal -->
+        <!-- Certificate Modal -->
         <div class="modal fade" id="certificateModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
@@ -829,166 +829,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- <!-- View Responsible Modal -->
-        <div class="modal fade" id="viewResponsibleModal" tabindex="-1" aria-labelledby="viewResponsibleModalLabel"
-            aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header text-black">
-                        <h5 class="modal-title" id="viewResponsibleModalLabel">Responsible Person Details</h5>
-                        <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
-                        <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Employee Details</h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Company</label>
-                                <p id="view_company_name" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Name of Person</label>
-                                <p id="view_emp_name" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Employee Code</label>
-                                <p id="view_emp_code" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Employee Status</label>
-                                <p id="view_emp_status" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Email</label>
-                                <p id="view_emp_email" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Contact</label>
-                                <p id="view_emp_contact" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Department</label>
-                                <p id="view_emp_department" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Designation</label>
-                                <p id="view_emp_designation" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">State</label>
-                                <p id="view_emp_state" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">City</label>
-                                <p id="view_emp_city" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Vertical</label>
-                                <p id="view_emp_vertical" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Region</label>
-                                <p id="view_emp_region" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Zone</label>
-                                <p id="view_emp_zone" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Business Unit</label>
-                                <p id="view_emp_bu" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Territory</label>
-                                <p id="view_emp_territory" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Join Date</label>
-                                <p id="view_emp_doj" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Separation Date</label>
-                                <p id="view_last_date" class="mb-0"></p>
-                            </div>
-                        </div>
-
-                        <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Authorization Details</h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Authorized Through</label>
-                                <p id="view_Authorised_Through" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Scope of Authorization</label>
-                                <p id="view_Scope_of_Authorisation" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Authorization Issued By</label>
-                                <p id="view_Authorisation_Issued_By" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Authorized Purpose</label>
-                                <p id="view_Authorised_Purpose" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-12" id="view_dynamic_field_container"></div>
-                        </div>
-
-                        <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Authorization Certificate Details</h6>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Issue Date</label>
-                                <p id="view_Issue_Date" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Effective From</label>
-                                <p id="view_Effective_From" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Valid Up to</label>
-                                <p id="view_Valid_up_to" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Authorization Status</label>
-                                <p id="view_Authorization_status" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Document View / Draft</label>
-                                <p id="view_auth_doc" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Revocation Date</label>
-                                <p id="view_Revocation_Date" class="mb-0"></p>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label fw-medium">Revocation Document</label>
-                                <p id="view_revocation_doc" class="mb-0"></p>
-                            </div>
-                        </div>
-
-                        <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Change History</h6>
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <table class="table table-bordered table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Event</th>
-                                            <th>Changes</th>
-                                            <th>User</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="view_change_history"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div> --}}
 
         <!-- View Responsible Modal -->
         <div class="modal fade" id="viewResponsibleModal" tabindex="-1" aria-labelledby="viewResponsibleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -1451,11 +1291,38 @@
                     </div>
                 </div>`;
             dynamicFieldContainer.insertAdjacentHTML('beforeend', html);
-            initializeLicenseRow(index, 'license_category_', 'license_name_');
+            // initializeLicenseRow(index, 'license_category_', 'license_name_');
+            initializeLicenseRow(index, 'license_category_', 'license_name_', '', '', null);
         }
 
         // Function to add a license row for Edit Modal
-        function addEditLicenseRow(index, licenseTypeId = '', licenseNameId = '') {
+        // function addEditLicenseRow(index, licenseTypeId = '', licenseNameId = '') {
+        //     const html = `
+        //         <div class="col-md-12 license-row" data-index="${index}">
+        //             <div class="row g-3 align-items-end">
+        //                 <div class="col-md-4">
+        //                     <label for="edit_license_category_${index}" class="form-label fw-medium">License Category</label>
+        //                     <select name="license_category[${index}]" id="edit_license_category_${index}" class="form-select form-select-sm">
+        //                         <option value="">Select License Category</option>
+        //                     </select>
+        //                 </div>
+        //                 <div class="col-md-4">
+        //                     <label for="edit_license_name_${index}" class="form-label fw-medium">License Name</label>
+        //                     <select name="license_name[${index}]" id="edit_license_name_${index}" class="form-select form-select-sm" disabled>
+        //                         <option value="">Select License Name</option>
+        //                     </select>
+        //                 </div>
+        //                 <div class="col-md-2">
+        //                     <a href="#" class="text-danger remove-license-row" data-index="${index}" title="Remove License">
+        //                         <i class="ri-delete-bin-line align-middle fs-5"></i>
+        //                     </a>
+        //                 </div>
+        //             </div>
+        //         </div>`;
+        //     editDynamicFieldContainer.insertAdjacentHTML('beforeend', html);
+        //     initializeLicenseRow(index, 'edit_license_category_', 'edit_license_name_', licenseTypeId, licenseNameId);
+        // }
+        function addEditLicenseRow(index, licenseTypeId = '', licenseNameId = '', responsibleId) {
             const html = `
                 <div class="col-md-12 license-row" data-index="${index}">
                     <div class="row g-3 align-items-end">
@@ -1479,11 +1346,69 @@
                     </div>
                 </div>`;
             editDynamicFieldContainer.insertAdjacentHTML('beforeend', html);
-            initializeLicenseRow(index, 'edit_license_category_', 'edit_license_name_', licenseTypeId, licenseNameId);
+            initializeLicenseRow(index, 'edit_license_category_', 'edit_license_name_', licenseTypeId, licenseNameId, responsibleId);
         }
 
         // Function to initialize license row
-        function initializeLicenseRow(index, categoryPrefix, namePrefix, licenseTypeId = '', licenseNameId = '') {
+        // function initializeLicenseRow(index, categoryPrefix, namePrefix, licenseTypeId = '', licenseNameId = '') {
+        //     const licenseCategorySelect = document.getElementById(`${categoryPrefix}${index}`);
+        //     const licenseNameSelect = document.getElementById(`${namePrefix}${index}`);
+
+        //     fetch('/custom_api/license-types')
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             data.forEach(type => {
+        //                 const option = document.createElement('option');
+        //                 option.value = type.id;
+        //                 option.textContent = type.license_type;
+        //                 if (type.id == licenseTypeId) option.selected = true;
+        //                 licenseCategorySelect.appendChild(option);
+        //             });
+        //             if (licenseTypeId) {
+        //                 fetch(`/get-license-names/${licenseTypeId}`)
+        //                     .then(response => response.json())
+        //                     .then(data => {
+        //                         licenseNameSelect.disabled = false;
+        //                         data.license_names.forEach(name => {
+        //                             const option = document.createElement('option');
+        //                             option.value = name.id;
+        //                             option.textContent = name.license_name;
+        //                             if (name.id == licenseNameId) option.selected = true;
+        //                             licenseNameSelect.appendChild(option);
+        //                         });
+        //                     })
+        //                     .catch(error => console.error('Error fetching license names:', error));
+        //             }
+        //         })
+        //         .catch(error => console.error('Error fetching license types:', error));
+
+        //     licenseCategorySelect.addEventListener('change', function() {
+        //         const licenseTypeId = this.value;
+        //         licenseNameSelect.innerHTML = '<option value="">Select License Name</option>';
+        //         licenseNameSelect.disabled = true;
+        //         if (licenseTypeId) {
+        //             fetch(`/get-license-names/${licenseTypeId}`)
+        //                 .then(response => response.json())
+        //                 .then(data => {
+        //                     licenseNameSelect.disabled = false;
+        //                     data.license_names.forEach(name => {
+        //                         const option = document.createElement('option');
+        //                         option.value = name.id;
+        //                         option.textContent = name.license_name;
+        //                         licenseNameSelect.appendChild(option);
+        //                     });
+        //                 })
+        //                 .catch(error => console.error('Error fetching license names:', error));
+        //         }
+        //     });
+
+        //     document.querySelector(`.remove-license-row[data-index="${index}"]`).addEventListener('click', function(e) {
+        //         e.preventDefault();
+        //         document.querySelector(`.license-row[data-index="${index}"]`).remove();
+        //         toggleAddLicenseIcon(categoryPrefix.includes('edit') ? 'edit' : 'add');
+        //     });
+        // }
+        function initializeLicenseRow(index, categoryPrefix, namePrefix, licenseTypeId = '', licenseNameId = '', responsibleId = null) {
             const licenseCategorySelect = document.getElementById(`${categoryPrefix}${index}`);
             const licenseNameSelect = document.getElementById(`${namePrefix}${index}`);
 
@@ -1498,7 +1423,11 @@
                         licenseCategorySelect.appendChild(option);
                     });
                     if (licenseTypeId) {
-                        fetch(`/get-license-names/${licenseTypeId}`)
+                        let url = `/get-license-names/${licenseTypeId}`;
+                        if (responsibleId) {
+                            url += `?responsible_id=${responsibleId}`;
+                        }
+                        fetch(url)
                             .then(response => response.json())
                             .then(data => {
                                 licenseNameSelect.disabled = false;
@@ -1520,7 +1449,11 @@
                 licenseNameSelect.innerHTML = '<option value="">Select License Name</option>';
                 licenseNameSelect.disabled = true;
                 if (licenseTypeId) {
-                    fetch(`/get-license-names/${licenseTypeId}`)
+                    let url = `/get-license-names/${licenseTypeId}`;
+                    if (responsibleId) {
+                        url += `?responsible_id=${responsibleId}`;
+                    }
+                    fetch(url)
                         .then(response => response.json())
                         .then(data => {
                             licenseNameSelect.disabled = false;

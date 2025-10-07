@@ -12,6 +12,15 @@ class CompanyMasterDetail extends Model
         'company_code',
         'registration_number',
         'gst_number',
+        'certificate_incorporation', 
+        'company_pan_card',          
+        'aoa',                       
+        'moa',                       
+        'gst_certificate',           
+        'board_resolution',          
+        'signature_specimen',        
+        'other_docs',                
+        'other_docs_name',
     ];
 
     public function documents()

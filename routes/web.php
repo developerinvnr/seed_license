@@ -103,7 +103,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/get-license-details/{id}', [LicenseListController::class, 'getLicenseDetails']);
     // Route::get('/get-license-fields/{id}', [LicenseListController::class, 'getMappedFields']);
     Route::get('/license-mapped-fields/{id}', [LicenseListController::class, 'getMappedFields']);
-    Route::post('/get-responsible-details', [LicenseListController::class, 'getResponsibleDetails'])->name('get-responsible-details');    Route::get('/send-reminder-emails', [LicenseListController::class, 'sendReminderEmails'])->name('send.reminder.emails');
+    Route::post('/get-responsible-details', [LicenseListController::class, 'getResponsibleDetails'])->name('get-responsible-details');    
+    Route::get('/send-reminder-emails', [LicenseListController::class, 'sendReminderEmails'])->name('send.reminder.emails');
+    Route::get('/get-employee-details/{emp_id}', [LicenseListController::class, 'getEmployeeDetails'])->name('get-employee-details');
     Route::get('/license/{id}', [LicenseListController::class, 'popupDetails'])->name('licenses.popup');
     Route::get('/get-label-data/{licenseId}/{tableName}', [LicenseListController::class, 'getLabelData']);
     Route::get('/get-license-history/{licenseTypeId}/{licenseNameId}', [LicenseListController::class, 'getLicenseHistory'])->name('license.history');
@@ -112,6 +114,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/get-city-villages/{districtId}', [LicenseListController::class, 'getCityVillages']);
     Route::get('/license-group-companies', [LicenseListController::class, 'getGroupCompanies'])->name('license.group-companies');
     Route::get('/check-license-name-responsible/{licenseNameId}', [LicenseListController::class, 'checkLicenseNameResponsible'])->name('check-license-name-responsible');
+    
 
     // Responsible Master Routes
     Route::group(['middleware' => ['permission:view-company Responsible Person']], function () {
@@ -125,6 +128,17 @@ Route::middleware('auth')->group(function () {
         Route::put('/responsible/{responsible}', [ResponsibleController::class, 'update'])->name('responsible.update');
         Route::get('/responsible/get-draft-content/{id}', [ResponsibleController::class, 'getDraftContent']);
         Route::put('/responsible/{id}/certificate', [ResponsibleController::class, 'updateCertificate'])->name('responsible.updateCertificate');
+        ('responsible.update');
+        Route::get('/check-license-availability', [ResponsibleController::class, 'checkLicenseAvailability'])->name('checkLicenseAvailability');
+        Route::get('/responsible/{id}/history', [ResponsibleController::class, 'getHistory'])->name('responsible.history');
+        Route::get('/custom_api/license-types', function () {
+            return response()->json(\App\Models\LicenseType::all());
+        });
+        Route::get('/get-license-names/{licenseTypeId}', function ($licenseTypeId) {
+            return response()->json([
+                'license_names' => \App\Models\LicenseName::where('license_type_id', $licenseTypeId)->get()
+            ]);
+        });
     });
 
     // Auth Draft Master Routes for Responsible Person
@@ -180,7 +194,7 @@ Route::middleware('auth')->group(function () {
     // Company Master Routes
     Route::group(['middleware' => ['auth', 'permission:view-Company']], function () {
         Route::get('/company', [CompanyController::class, 'index'])->name('company');
-        Route::get('/company/fetch-companies', [CompanyController::class, 'fetchCompanies'])->name('company.fetch_companies');
+        Route::get('/company/fetch_companies', [CompanyController::class, 'fetchCompanies'])->name('company.fetch_companies');
     });
     Route::group(['middleware' => ['auth', 'permission:add-Company']], function () {
         Route::post('/company/store', [CompanyController::class, 'store'])->name('company.store');
@@ -200,9 +214,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/crop-master', [CropMasterController::class, 'index'])->name('crop-master');
     Route::get('/get-crops/{vertical_id}', [CropMasterController::class, 'getCrops']);
     Route::get('/get-varieties/{crop_id}', [CropMasterController::class, 'getVarieties']);
-    Route::post('/crop-master', [CropMasterController::class, 'store'])->name('crop-master.store');
-    Route::delete('/crop-master/{id}', [CropMasterController::class, 'destroy'])->name('crop-master.destroy');
-
 
     Route::get('/check-permission', function () {
     return \Spatie\Permission\Models\Permission::where('name', 'view-company Responsible Person')->get();

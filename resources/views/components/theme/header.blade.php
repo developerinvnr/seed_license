@@ -12,11 +12,11 @@
         <link rel="shortcut icon" href="{{ URL::to('/') }}/assets/images/license_logo_v.png" height="80" />
         <script src="{{ URL::to('/') }}/assets/js/layout.js"></script>
         <link href="{{ URL::to('/') }}/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+        <link href="{{ URL::to('/') }}/assets/css/velzon.min.css" rel="stylesheet" type="text/css" />
         <link href="{{ URL::to('/') }}/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
         <link href="{{ URL::to('/') }}/assets/css/app.min.css" rel="stylesheet" type="text/css" />
         <link href="{{ URL::to('/') }}/assets/css/custom.min.css" rel="stylesheet" type="text/css" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-        {{-- <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script> --}}
         <link rel="stylesheet" href="{{ URL::to('/') }}/assets/libs/dropzone/dropzone.css" type="text/css" />
         <link href="{{ URL::to('/') }}/assets/libs/sweetalert2/sweetalert2.min.css" rel="stylesheet" type="text/css" />
         <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />

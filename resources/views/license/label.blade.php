@@ -172,6 +172,9 @@
         </div>
 
     </div>
+@endsection
+
+@push('custom-js')
     <script>
         $(document).on('click', '.edit-btn', function() {
             var id = $(this).data('id');
@@ -215,4 +218,4 @@
             });
         });
     </script>
-@endsection
+@endpush

@@ -112,277 +112,277 @@
                         </div>
                     </div>
                 </div>
-
-                <script>
-                    $(document).ready(function() {
-                        function showLoading(button) {
-                            button.prop("disabled", true).data("original-text", button.text()).text("Wait...");
-                        }
-
-                        function hideLoading(button) {
-                            button.prop("disabled", false).text(button.data("original-text"));
-                        }
-
-
-                        $("#fetchApis").click(function() {
-                            var button = $(this);
-                            showLoading(button);
-
-                            $.ajax({
-                                url: "{{ route('core.fetch_apis') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "GET",
-                                dataType: "json",
-                                success: function(response) {
-                                    alert(response.message);
-                                    location.reload();
-                                },
-                                error: function() {
-                                    alert("Failed to fetch API list.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $("#syncApis").click(function() {
-                            var button = $(this);
-                            showLoading(button);
-
-                            $.ajax({
-                                url: "{{ route('core.sync_apis') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "GET",
-                                dataType: "text",
-                                success: function(responseText) {
-                                    try {
-
-                                        let jsonMatches = responseText.match(/{[^}]+}/g);
-                                        let syncedData = [];
-
-                                        if (jsonMatches) {
-                                            jsonMatches.forEach(jsonString => {
-                                                let response = JSON.parse(jsonString);
-                                                if (response.status === "success") {
-                                                    syncedData.push(response.message);
-                                                }
-                                            });
-                                        }
-
-                                        if (syncedData.length > 0) {
-                                            let syncList = "<ul>";
-                                            syncedData.forEach(item => {
-                                                syncList += `<li>${item}</li>`;
-                                            });
-                                            syncList += "</ul>";
-
-                                            $("#syncList").html(syncList);
-                                            $("#syncedDataList").fadeIn();
-
-                                            setTimeout(function() {
-                                                $("#syncedDataList").fadeOut();
-                                            }, 10000);
-                                        } else {
-                                            alert("No data was synced.");
-                                        }
-                                    } catch (error) {
-                                        console.error("JSON Parsing Error:", error);
-                                        alert("Failed to parse API response.");
-                                    }
-                                },
-                                error: function() {
-                                    alert("Failed to sync API data.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $(".sync-api-btn").click(function() {
-                            var button = $(this);
-                            var apiEndPoint = button.data("api");
-                            var tableName = button.data("table");
-                            var parameters = button.data("parameters");
-
-                            var requestData = {
-                                api_end_point: apiEndPoint,
-                                table_name: tableName,
-                                params: {}
-                            };
-
-
-                            if (parameters) {
-                                var paramArray = parameters.split(",").map(param => param.trim());
-
-                                for (var i = 0; i < paramArray.length; i++) {
-                                    var key = paramArray[i];
-                                    var userValue = prompt(`Enter value for ${key}:`);
-
-                                    if (userValue !== null && userValue !== "") {
-                                        requestData.params[key] = userValue;
-                                    } else {
-                                        alert("Sync cancelled. Parameter is required.");
-                                        return;
-                                    }
-                                }
-                            }
-
-                            showLoading(button);
-
-                            $.ajax({
-                                url: "{{ route('core.sync_single_api') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "POST",
-                                data: JSON.stringify(requestData),
-                                contentType: "application/json",
-                                dataType: "json",
-                                success: function(response) {
-                                    alert(response.message);
-                                },
-                                error: function() {
-                                    alert("Failed to sync API.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $(".view-data-btn").click(function() {
-                            var button = $(this);
-                            showLoading(button);
-                            $("#dataTitle").text(button.data("table"));
-                            $.ajax({
-                                url: "{{ route('core.get_api_data') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "POST",
-                                data: {
-                                    table_name: button.data("table")
-                                },
-                                dataType: "json",
-                                beforeSend: function() {
-                                    $("#apiTableHead, #apiTableBody").html("");
-                                },
-                                success: function(response) {
-                                    if (response.status === "success" && response.data.length > 0) {
-
-                                        var data = response.data;
-                                        var headers = Object.keys(data[0]);
-                                        var headerRow = headers.map((h) => `<th>${h}</th>`).join("");
-                                        $("#apiTableHead").html(headerRow);
-
-                                        var rows = data
-                                            .map((row) => {
-                                                return `<tr>` + headers.map((h) =>
-                                                        `<td>${row[h] !== null ? row[h] : ""}</td>`)
-                                                    .join("") + `</tr>`;
-                                            })
-                                            .join("");
-                                        $("#apiTableBody").html(rows);
-
-                                        if ($.fn.DataTable.isDataTable("#apiDataTable")) {
-                                            $("#apiDataTable").DataTable().clear().destroy();
-                                        }
-
-                                        setTimeout(function() {
-                                            $("#apiDataTable").DataTable({
-                                                responsive: true,
-                                                autoWidth: false,
-                                                pageLength: 6,
-                                            });
-                                        }, 100);
-
-                                        $("#apiDataModal").modal("show");
-                                    } else {
-                                        alert("No data found for this API.");
-                                    }
-                                },
-                                error: function() {
-                                    alert("Failed to fetch API data.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $(".empty-data-btn").click(function() {
-                            var button = $(this);
-                            if (!confirm("Are you sure you want to delete all data from this table?")) return;
-                            showLoading(button);
-
-                            $.ajax({
-                                url: "{{ route('core.empty_table') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "POST",
-                                data: {
-                                    table_name: button.data("table")
-                                },
-                                dataType: "json",
-                                success: function(response) {
-                                    alert(response.message);
-                                },
-                                error: function() {
-                                    alert("Failed to empty table.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $(".drop-api-btn").click(function() {
-                            var button = $(this);
-                            if (!confirm(
-                                    "Are you sure you want to delete this API table? This action cannot be undone."))
-                                return;
-                            showLoading(button);
-
-                            $.ajax({
-                                url: "{{ route('core.drop_table') }}",
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                type: "POST",
-                                data: {
-                                    table_name: button.data("table")
-                                },
-                                dataType: "json",
-                                success: function(response) {
-                                    alert(response.message);
-                                    location.reload();
-                                },
-                                error: function() {
-                                    alert("Failed to drop API table.");
-                                },
-                                complete: function() {
-                                    hideLoading(button);
-                                },
-                            });
-                        });
-
-                        $("#apiDataModal").on("hidden.bs.modal", function() {
-                            if ($.fn.DataTable.isDataTable("#apiDataTable")) {
-                                $("#apiDataTable").DataTable().clear().destroy();
-                            }
-                            $("#apiTableHead, #apiTableBody").html("");
-                        });
-                    });
-                </script>
-
             </div>
         </div>
     </div>
 @endsection
+@push('custom-js')
+    <script>
+        $(document).ready(function() {
+            function showLoading(button) {
+                button.prop("disabled", true).data("original-text", button.text()).text("Wait...");
+            }
+
+            function hideLoading(button) {
+                button.prop("disabled", false).text(button.data("original-text"));
+            }
+
+
+            $("#fetchApis").click(function() {
+                var button = $(this);
+                showLoading(button);
+
+                $.ajax({
+                    url: "{{ route('core.fetch_apis') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "GET",
+                    dataType: "json",
+                    success: function(response) {
+                        alert(response.message);
+                        location.reload();
+                    },
+                    error: function() {
+                        alert("Failed to fetch API list.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $("#syncApis").click(function() {
+                var button = $(this);
+                showLoading(button);
+
+                $.ajax({
+                    url: "{{ route('core.sync_apis') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "GET",
+                    dataType: "text",
+                    success: function(responseText) {
+                        try {
+
+                            let jsonMatches = responseText.match(/{[^}]+}/g);
+                            let syncedData = [];
+
+                            if (jsonMatches) {
+                                jsonMatches.forEach(jsonString => {
+                                    let response = JSON.parse(jsonString);
+                                    if (response.status === "success") {
+                                        syncedData.push(response.message);
+                                    }
+                                });
+                            }
+
+                            if (syncedData.length > 0) {
+                                let syncList = "<ul>";
+                                syncedData.forEach(item => {
+                                    syncList += `<li>${item}</li>`;
+                                });
+                                syncList += "</ul>";
+
+                                $("#syncList").html(syncList);
+                                $("#syncedDataList").fadeIn();
+
+                                setTimeout(function() {
+                                    $("#syncedDataList").fadeOut();
+                                }, 10000);
+                            } else {
+                                alert("No data was synced.");
+                            }
+                        } catch (error) {
+                            console.error("JSON Parsing Error:", error);
+                            alert("Failed to parse API response.");
+                        }
+                    },
+                    error: function() {
+                        alert("Failed to sync API data.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $(".sync-api-btn").click(function() {
+                var button = $(this);
+                var apiEndPoint = button.data("api");
+                var tableName = button.data("table");
+                var parameters = button.data("parameters");
+
+                var requestData = {
+                    api_end_point: apiEndPoint,
+                    table_name: tableName,
+                    params: {}
+                };
+
+
+                if (parameters) {
+                    var paramArray = parameters.split(",").map(param => param.trim());
+
+                    for (var i = 0; i < paramArray.length; i++) {
+                        var key = paramArray[i];
+                        var userValue = prompt(`Enter value for ${key}:`);
+
+                        if (userValue !== null && userValue !== "") {
+                            requestData.params[key] = userValue;
+                        } else {
+                            alert("Sync cancelled. Parameter is required.");
+                            return;
+                        }
+                    }
+                }
+
+                showLoading(button);
+
+                $.ajax({
+                    url: "{{ route('core.sync_single_api') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "POST",
+                    data: JSON.stringify(requestData),
+                    contentType: "application/json",
+                    dataType: "json",
+                    success: function(response) {
+                        alert(response.message);
+                    },
+                    error: function() {
+                        alert("Failed to sync API.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $(".view-data-btn").click(function() {
+                var button = $(this);
+                showLoading(button);
+                $("#dataTitle").text(button.data("table"));
+                $.ajax({
+                    url: "{{ route('core.get_api_data') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "POST",
+                    data: {
+                        table_name: button.data("table")
+                    },
+                    dataType: "json",
+                    beforeSend: function() {
+                        $("#apiTableHead, #apiTableBody").html("");
+                    },
+                    success: function(response) {
+                        if (response.status === "success" && response.data.length > 0) {
+
+                            var data = response.data;
+                            var headers = Object.keys(data[0]);
+                            var headerRow = headers.map((h) => `<th>${h}</th>`).join("");
+                            $("#apiTableHead").html(headerRow);
+
+                            var rows = data
+                                .map((row) => {
+                                    return `<tr>` + headers.map((h) =>
+                                            `<td>${row[h] !== null ? row[h] : ""}</td>`)
+                                        .join("") + `</tr>`;
+                                })
+                                .join("");
+                            $("#apiTableBody").html(rows);
+
+                            if ($.fn.DataTable.isDataTable("#apiDataTable")) {
+                                $("#apiDataTable").DataTable().clear().destroy();
+                            }
+
+                            setTimeout(function() {
+                                $("#apiDataTable").DataTable({
+                                    responsive: true,
+                                    autoWidth: false,
+                                    pageLength: 6,
+                                });
+                            }, 100);
+
+                            $("#apiDataModal").modal("show");
+                        } else {
+                            alert("No data found for this API.");
+                        }
+                    },
+                    error: function() {
+                        alert("Failed to fetch API data.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $(".empty-data-btn").click(function() {
+                var button = $(this);
+                if (!confirm("Are you sure you want to delete all data from this table?")) return;
+                showLoading(button);
+
+                $.ajax({
+                    url: "{{ route('core.empty_table') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "POST",
+                    data: {
+                        table_name: button.data("table")
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        alert(response.message);
+                    },
+                    error: function() {
+                        alert("Failed to empty table.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $(".drop-api-btn").click(function() {
+                var button = $(this);
+                if (!confirm(
+                        "Are you sure you want to delete this API table? This action cannot be undone."))
+                    return;
+                showLoading(button);
+
+                $.ajax({
+                    url: "{{ route('core.drop_table') }}",
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    type: "POST",
+                    data: {
+                        table_name: button.data("table")
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        alert(response.message);
+                        location.reload();
+                    },
+                    error: function() {
+                        alert("Failed to drop API table.");
+                    },
+                    complete: function() {
+                        hideLoading(button);
+                    },
+                });
+            });
+
+            $("#apiDataModal").on("hidden.bs.modal", function() {
+                if ($.fn.DataTable.isDataTable("#apiDataTable")) {
+                    $("#apiDataTable").DataTable().clear().destroy();
+                }
+                $("#apiTableHead, #apiTableBody").html("");
+            });
+        });
+    </script>
+@endpush

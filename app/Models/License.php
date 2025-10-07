@@ -1,73 +1,5 @@
 <?php
-
-// namespace App\Models;
-
-// use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Illuminate\Database\Eloquent\Model;
-// use Spatie\Activitylog\LogOptions;
-// use Spatie\Activitylog\Traits\LogsActivity;
-
-// class License extends Model
-// {
-//     use HasFactory,LogsActivity;
-//  protected $table = 'licenses'; 
-//     protected $fillable = [
-//         'license_type_id',
-//         'license_name_id',
-//         'registered_address',
-//         'responsible_person',
-//         'res_email',
-//         'res_contact',
-//         'res_department',
-//         'res_designation',
-//         'letter_date',
-//         'date_of_issue',
-//         'valid_upto',
-//         'reminder_option',
-//         'reminder_emails',
-//         'reminder_days',
-//         'lis_status',
-//         'license_performance',
-//     ];
-
-//     public function licenseType()
-//     {
-//         return $this->belongsTo(LicenseType::class, 'license_type_id');
-//     }
-
-//     public function licenseName()
-//     {
-//         return $this->belongsTo(LicenseName::class, 'license_name_id');
-//     }
-
-//       public function getActivitylogOptions(): LogOptions
-//     {
-//         return LogOptions::defaults()
-//         ->useLogName('licenses') 
-//             ->logOnly([
-//                 'license_type_id',
-//                 'license_name_id',
-//                 'registered_address',
-//                 'responsible_person',
-//                 'res_email',
-//                 'res_contact',
-//                 'res_department',
-//                 'res_designation',
-//                 'letter_date',
-//                 'date_of_issue',
-//                 'valid_upto',
-//                 'reminder_option',
-//                 'reminder_emails',
-//                 'reminder_days',
-//                 'lis_status',
-//                 'license_performance'
-//             ]);
-//     }
-// }
-
-
 namespace App\Models;
-
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -103,10 +35,15 @@ class License extends Model
         'reminder_emails',
         'reminder_days',
         'lis_status',
+        'surrendered_remark',
+        'revoked_remark',
+        'withdrawn_remark',
+        'rejected_remark',
         'license_performance',
         'license_creation_remark',
         'last_reminder_sent_at',
         'application_status',
+        'final_document',
     ];
 
     public function company()
